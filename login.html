@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="fr" dir="ltr">
+<html lang="fr" dir="ltr" translate="no">
 <head>
+<meta name="google" content="notranslate">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
@@ -20,12 +21,12 @@
 <div id="loadingMsg" class="state-msg">Vérification de la connexion...</div>
 
 <div class="wrap" id="loginForm" style="max-width:400px; padding-top:60px; display:none;">
-  <div class="shop-name display" style="text-align:center; margin-bottom:30px;" data-i18n="pageHeading">Connexion des propriétaires de cafés</div>
+  <div class="shop-name display" style="text-align:center; margin-bottom:30px;" data-i18n="pageHeading">Espace des propriétaires de cafés</div>
 
   <div class="card">
     <div class="field">
       <label for="email" data-i18n="emailLbl">Courriel</label>
-      <input type="email" id="email" placeholder="you@example.com">
+      <input type="email" id="email" placeholder="vous@exemple.com">
     </div>
     <div class="field">
       <label for="password" data-i18n="passwordLbl">Mot de passe</label>
@@ -60,7 +61,7 @@ let loginLang = localStorage.getItem('dashLang');
 if (loginLang !== 'fr' && loginLang !== 'en') loginLang = 'fr';
 
 const loginT = {
-  pageHeading: { fr: "Connexion des propriétaires de cafés", en: 'Coffee Shop Owner Login' },
+  pageHeading: { fr: "Espace des propriétaires de cafés", en: 'Coffee Shop Owner Login' },
   emailLbl: { fr: "Courriel", en: 'Email' },
   passwordLbl: { fr: "Mot de passe", en: 'Password' },
   loginBtn: { fr: "Se connecter", en: 'Log in' },
@@ -87,6 +88,7 @@ function applyLoginLang() {
   document.getElementById('langToggle').textContent = loginLang === 'fr' ? 'EN' : 'FR';
   document.documentElement.dir = 'ltr';
   document.documentElement.lang = loginLang;
+  document.getElementById('email').placeholder = loginLang === 'en' ? 'you@example.com' : 'vous@exemple.com';
 }
 
 function toggleLoginLang() {
