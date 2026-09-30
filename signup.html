@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,46 +10,46 @@
 <meta name="theme-color" content="#6B4226">
 <script src="pwa-install.js" defer></script>
 
-<title>سجّل كوفيك</title>
+<title>Inscrivez votre café</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div class="wrap" style="max-width:420px; padding-top:50px;">
-  <div class="shop-name display" style="text-align:center; margin-bottom:8px;">سجّل كوفيك</div>
+  <div class="shop-name display" style="text-align:center; margin-bottom:8px;">Inscrivez votre café</div>
   <p style="text-align:center; color:var(--stone); font-size:0.85rem; margin-bottom:24px;">
-    أنشئ حسابك وابدأ تجهز قائمتك الرقمية خلال دقائق.
+    Créez votre compte et préparez votre menu numérique en quelques minutes.
   </p>
 
   <div class="card">
     <div class="field">
-      <label for="signupEmail">البريد الإلكتروني <span style="color:#B3441E;">*</span></label>
+      <label for="signupEmail">Courriel <span style="color:#B3441E;">*</span></label>
       <input type="email" id="signupEmail" placeholder="you@example.com">
     </div>
 
     <div class="field">
-      <label for="signupPassword">كلمة المرور</label>
-      <input type="password" id="signupPassword" placeholder="6 أحرف على الأقل">
+      <label for="signupPassword">Mot de passe</label>
+      <input type="password" id="signupPassword" placeholder="6 caractères minimum">
     </div>
 
     <div class="field">
-      <label for="signupPasswordConfirm">تأكيد كلمة المرور</label>
-      <input type="password" id="signupPasswordConfirm" placeholder="أعد كتابة كلمة المرور">
+      <label for="signupPasswordConfirm">Confirmer le mot de passe</label>
+      <input type="password" id="signupPasswordConfirm" placeholder="Retapez le mot de passe">
     </div>
 
     <div class="field">
-      <label for="signupWhatsapp">رقم الواتساب <span style="color:#B3441E;">*</span></label>
+      <label for="signupWhatsapp">Numéro WhatsApp <span style="color:#B3441E;">*</span></label>
       <div style="display:flex; gap:8px;">
         <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
         <input type="tel" id="signupWhatsapp" placeholder="9xxxxxxx" style="flex:1;">
       </div>
     </div>
 
-    <button class="btn" style="width:100%;" onclick="signup()">إنشاء الحساب</button>
+    <button class="btn" style="width:100%;" onclick="signup()">Créer le compte</button>
     <div id="error" class="error-msg"></div>
 
     <div style="text-align:center; margin-top:16px; font-size:0.85rem; color:var(--stone);">
-      عندك حساب؟ <a href="login.html" style="color:var(--accent);">سجّل دخولك</a>
+      Vous avez déjà un compte ? <a href="login.html" style="color:var(--accent);">Connectez-vous</a>
     </div>
   </div>
 </div>
@@ -71,27 +71,27 @@ async function signup() {
   const whatsapp = localNumber ? '+968' + localNumber : '';
 
   if (!email) {
-    errorEl.textContent = 'البريد الإلكتروني مطلوب.';
+    errorEl.textContent = "Le courriel est obligatoire.";
     return;
   }
   if (!localNumber) {
-    errorEl.textContent = 'رقم الواتساب مطلوب.';
+    errorEl.textContent = "Le numéro WhatsApp est obligatoire.";
     return;
   }
   if (!/^[0-9]{7,9}$/.test(localNumber)) {
-    errorEl.textContent = 'رقم الواتساب غير صحيح. اكتب رقمك بدون رمز الدولة (مثال: 91234567).';
+    errorEl.textContent = "Numéro WhatsApp invalide. Entrez votre numéro sans l'indicatif du pays.";
     return;
   }
   if (!password || !passwordConfirm) {
-    errorEl.textContent = 'الرجاء تعبئة كلمة المرور وتأكيدها.';
+    errorEl.textContent = "Veuillez entrer et confirmer le mot de passe.";
     return;
   }
   if (password.length < 6) {
-    errorEl.textContent = 'كلمة المرور لازم تكون 6 أحرف على الأقل.';
+    errorEl.textContent = "Le mot de passe doit contenir au moins 6 caractères.";
     return;
   }
   if (password !== passwordConfirm) {
-    errorEl.textContent = 'كلمتا المرور غير متطابقتين.';
+    errorEl.textContent = "Les mots de passe ne correspondent pas.";
     return;
   }
 
@@ -118,25 +118,25 @@ async function signup() {
     document.querySelector('.card').innerHTML = `
       <div style="text-align:center; padding:20px 10px;">
         <div style="font-size:2.5rem; margin-bottom:10px;">📧</div>
-        <h3 style="margin-bottom:10px;">تحقق من بريدك الإلكتروني</h3>
+        <h3 style="margin-bottom:10px;">Vérifiez votre courriel</h3>
         <p style="color:var(--stone); font-size:0.9rem;">
-          أرسلنا رابط تأكيد إلى <strong>${email}</strong>.<br>
-          بعد ما تضغط الرابط، سجّل دخولك وبتتفعّل تجربتك المجانية (14 يوم) تلقائياً.
+          Nous avons envoyé un lien de confirmation à <strong>${email}</strong>.<br>
+          Après avoir cliqué sur le lien, connectez-vous : votre essai gratuit de 14 jours s'activera automatiquement.
         </p>
         <p style="color:#B3441E; font-size:0.85rem; margin-top:10px;">
-          📩 لو ما لقيت الإيميل بصندوق الوارد خلال دقيقة، تفقد مجلد "البريد غير المرغوب / Spam" — أحياناً يوصله هناك.
+          📩 Si le courriel n'arrive pas dans votre boîte de réception d'ici une minute, vérifiez vos courriels indésirables (spam).
         </p>
-        <a href="login.html" class="btn" style="display:inline-block; margin-top:16px; text-decoration:none;">تسجيل الدخول</a>
+        <a href="login.html" class="btn" style="display:inline-block; margin-top:16px; text-decoration:none;">Se connecter</a>
       </div>
     `;
   } catch (err) {
     console.error(err);
     if (err.code === 'auth/email-already-in-use') {
-      errorEl.textContent = 'هذا البريد الإلكتروني مستخدم مسبقاً. جرب تسجيل الدخول بدل ذلك.';
+      errorEl.textContent = "Ce courriel est déjà utilisé. Essayez plutôt de vous connecter.";
     } else if (err.code === 'auth/invalid-email') {
-      errorEl.textContent = 'صيغة البريد الإلكتروني غير صحيحة.';
+      errorEl.textContent = "Format de courriel invalide.";
     } else {
-      errorEl.textContent = 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.';
+      errorEl.textContent = "Une erreur s'est produite lors de la création du compte. Veuillez réessayer.";
     }
   }
 }

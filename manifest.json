@@ -1,7 +1,7 @@
 {
   "name": "Cafeoman.app",
   "short_name": "Cafeoman",
-  "description": "قوائم رقمية وطلب فوري للكوفيات عبر QR",
+  "description": "Menus numériques et commande instantanée par code QR pour les cafés",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FAF6EF",

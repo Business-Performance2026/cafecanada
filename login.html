@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,36 +10,36 @@
 <meta name="theme-color" content="#6B4226">
 <script src="pwa-install.js" defer></script>
 
-<title>تسجيل الدخول</title>
+<title>Connexion</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <button class="lang-toggle" id="langToggle" onclick="toggleLoginLang()">EN</button>
 
-<div id="loadingMsg" class="state-msg">جاري التحقق من تسجيل الدخول...</div>
+<div id="loadingMsg" class="state-msg">Vérification de la connexion...</div>
 
 <div class="wrap" id="loginForm" style="max-width:400px; padding-top:60px; display:none;">
-  <div class="shop-name display" style="text-align:center; margin-bottom:30px;" data-i18n="pageHeading">تسجيل دخول أصحاب الكوفيات</div>
+  <div class="shop-name display" style="text-align:center; margin-bottom:30px;" data-i18n="pageHeading">Connexion des propriétaires de cafés</div>
 
   <div class="card">
     <div class="field">
-      <label for="email" data-i18n="emailLbl">البريد الإلكتروني</label>
+      <label for="email" data-i18n="emailLbl">Courriel</label>
       <input type="email" id="email" placeholder="you@example.com">
     </div>
     <div class="field">
-      <label for="password" data-i18n="passwordLbl">كلمة المرور</label>
+      <label for="password" data-i18n="passwordLbl">Mot de passe</label>
       <input type="password" id="password" placeholder="••••••••">
     </div>
-    <button class="btn" style="width:100%;" onclick="login()" data-i18n="loginBtn">دخول</button>
+    <button class="btn" style="width:100%;" onclick="login()" data-i18n="loginBtn">Se connecter</button>
     <div id="error" class="error-msg"></div>
     <div id="successMsg" style="color:#3D6B4F; font-size:0.85rem; margin-top:8px;"></div>
 
     <div style="text-align:center; margin-top:16px; font-size:0.85rem;">
-      <a href="#" onclick="forgotPassword(); return false;" style="color:var(--accent);" data-i18n="forgotPasswordLink">نسيت كلمة المرور؟</a>
+      <a href="#" onclick="forgotPassword(); return false;" style="color:var(--accent);" data-i18n="forgotPasswordLink">Mot de passe oublié ?</a>
     </div>
     <div style="text-align:center; margin-top:10px; font-size:0.85rem; color:var(--stone);">
-      <span data-i18n="noAccountText">ما عندك حساب؟</span> <a href="signup.html" style="color:var(--accent);" data-i18n="signupLink">سجل حساب جديد</a>
+      <span data-i18n="noAccountText">Pas encore de compte ?</span> <a href="signup.html" style="color:var(--accent);" data-i18n="signupLink">Créer un compte</a>
     </div>
   </div>
 </div>
@@ -56,23 +56,24 @@ window.addEventListener('pageshow', function (event) {
   }
 });
 
-let loginLang = localStorage.getItem('dashLang') || 'ar';
+let loginLang = localStorage.getItem('dashLang');
+if (loginLang !== 'fr' && loginLang !== 'en') loginLang = 'fr';
 
 const loginT = {
-  pageHeading: { ar: 'تسجيل دخول أصحاب الكوفيات', en: 'Coffee Shop Owner Login' },
-  emailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
-  passwordLbl: { ar: 'كلمة المرور', en: 'Password' },
-  loginBtn: { ar: 'دخول', en: 'Log in' },
-  forgotPasswordLink: { ar: 'نسيت كلمة المرور؟', en: 'Forgot password?' },
-  noAccountText: { ar: 'ما عندك حساب؟', en: "Don't have an account?" },
-  signupLink: { ar: 'سجل حساب جديد', en: 'Sign up' },
-  staffQuestionText: { ar: 'أنت موظف؟', en: 'Are you a staff member?' },
-  staffLoginLink: { ar: 'سجل دخولك من هنا', en: 'Log in here' },
-  fillFieldsError: { ar: 'الرجاء إدخال البريد الإلكتروني وكلمة المرور.', en: 'Please enter your email and password.' },
-  loginError: { ar: 'بيانات الدخول غير صحيحة. حاول مرة أخرى.', en: 'Incorrect login details. Please try again.' },
-  emailFirstError: { ar: 'اكتب بريدك الإلكتروني بالخانة فوق أولاً، وبعدين اضغط "نسيت كلمة المرور".', en: 'Enter your email above first, then click "Forgot password".' },
-  resetSent: { ar: 'تم إرسال رابط إعادة تعيين كلمة المرور لبريدك الإلكتروني ✓', en: 'Password reset link sent to your email ✓' },
-  resetFailed: { ar: 'تعذر إرسال رابط إعادة التعيين. تأكد من صحة البريد الإلكتروني.', en: 'Could not send reset link. Please check your email address.' }
+  pageHeading: { fr: "Connexion des propriétaires de cafés", en: 'Coffee Shop Owner Login' },
+  emailLbl: { fr: "Courriel", en: 'Email' },
+  passwordLbl: { fr: "Mot de passe", en: 'Password' },
+  loginBtn: { fr: "Se connecter", en: 'Log in' },
+  forgotPasswordLink: { fr: "Mot de passe oublié ?", en: 'Forgot password?' },
+  noAccountText: { fr: "Pas encore de compte ?", en: "Don't have an account?" },
+  signupLink: { fr: "Créer un compte", en: 'Sign up' },
+  staffQuestionText: { fr: "Vous êtes membre du personnel ?", en: 'Are you a staff member?' },
+  staffLoginLink: { fr: "Connectez-vous ici", en: 'Log in here' },
+  fillFieldsError: { fr: "Veuillez entrer votre courriel et votre mot de passe.", en: 'Please enter your email and password.' },
+  loginError: { fr: "Identifiants incorrects. Veuillez réessayer.", en: 'Incorrect login details. Please try again.' },
+  emailFirstError: { fr: "Entrez d'abord votre courriel ci-dessus, puis cliquez sur « Mot de passe oublié ».", en: 'Enter your email above first, then click "Forgot password".' },
+  resetSent: { fr: "Un lien de réinitialisation a été envoyé à votre courriel ✓", en: 'Password reset link sent to your email ✓' },
+  resetFailed: { fr: "Impossible d'envoyer le lien de réinitialisation. Vérifiez votre adresse courriel.", en: 'Could not send reset link. Please check your email address.' }
 };
 
 function lt(key) {
@@ -83,13 +84,13 @@ function applyLoginLang() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     el.textContent = lt(el.getAttribute('data-i18n'));
   });
-  document.getElementById('langToggle').textContent = loginLang === 'ar' ? 'EN' : 'عربي';
-  document.documentElement.dir = loginLang === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('langToggle').textContent = loginLang === 'fr' ? 'EN' : 'FR';
+  document.documentElement.dir = 'ltr';
   document.documentElement.lang = loginLang;
 }
 
 function toggleLoginLang() {
-  loginLang = loginLang === 'ar' ? 'en' : 'ar';
+  loginLang = loginLang === 'fr' ? 'en' : 'fr';
   localStorage.setItem('dashLang', loginLang);
   applyLoginLang();
 }

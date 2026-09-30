@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,14 +10,14 @@
 <meta name="theme-color" content="#6B4226">
 <script src="pwa-install.js" defer></script>
 
-<title data-i18n="pageTitle">لوحة التحكم</title>
+<title data-i18n="pageTitle">Tableau de bord</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div id="printReceiptArea"></div>
 
-<div id="loadingMsg" class="state-msg" data-i18n="checkingLogin">جاري التحقق من تسجيل الدخول...</div>
+<div id="loadingMsg" class="state-msg" data-i18n="checkingLogin">Vérification de la connexion...</div>
 
 <div class="wrap" id="app" style="display:none; padding-bottom:80px;">
 
@@ -26,93 +26,93 @@
   <div class="top-bar">
     <div style="display:flex; align-items:center; gap:10px;">
       <img src="logo-app.png" alt="Cafeoman.app" style="width:34px; height:34px; border-radius:9px; object-fit:cover; flex-shrink:0;">
-      <div class="shop-name display" id="shopNameHeader">لوحة التحكم</div>
+      <div class="shop-name display" id="shopNameHeader">Tableau de bord</div>
     </div>
     <div style="display:flex; align-items:center; gap:12px;">
       <button class="lang-toggle" id="dashLangToggle" onclick="toggleDashLang()" style="position:static; box-shadow:none; padding:6px 12px;">EN</button>
       <div class="bell-wrap" onclick="switchTab('pos')">
         🔔<span class="bell-badge" id="bellBadge" style="display:none;">0</span>
       </div>
-      <button onclick="logout()" class="btn btn-ghost" style="padding:6px 14px; font-size:0.82rem;" data-i18n="logoutBtn">تسجيل خروج</button>
+      <button onclick="logout()" class="btn btn-ghost" style="padding:6px 14px; font-size:0.82rem;" data-i18n="logoutBtn">Se déconnecter</button>
     </div>
   </div>
 
   <div id="noPermissionsScreen" class="state-msg" style="display:none; padding-top:60px;"></div>
 
-  <!-- ===================== TAB 1: لوحة التحكم (Menu + QR) ===================== -->
+  <!-- ===================== TAB 1: Dashboard (Menu + QR) ===================== -->
   <div id="view-dashboard" class="tab-view active">
 
     <div class="icon-subnav">
       <button class="icon-subnav-btn" data-sub="qr" onclick="switchSubView('qr')">
         <span class="icon-subnav-icon"><img src="icon-qr.png" alt=""></span>
-        <span class="icon-subnav-label" data-i18n="subQr">الباركود</span>
+        <span class="icon-subnav-label" data-i18n="subQr">Code QR</span>
       </button>
       <button class="icon-subnav-btn" data-sub="add" onclick="switchSubView('add')">
-        <span class="icon-subnav-icon"><img src="icon-add.png" alt=""></span><span class="icon-subnav-label" data-i18n="subAdd">إضافة صنف</span>
+        <span class="icon-subnav-icon"><img src="icon-add.png" alt=""></span><span class="icon-subnav-label" data-i18n="subAdd">Ajouter</span>
       </button>
       <button class="icon-subnav-btn active" data-sub="list" onclick="switchSubView('list')">
-        <span class="icon-subnav-icon"><img src="icon-list.png" alt=""></span><span class="icon-subnav-label" data-i18n="subList">قائمة الأصناف</span>
+        <span class="icon-subnav-icon"><img src="icon-list.png" alt=""></span><span class="icon-subnav-label" data-i18n="subList">Articles</span>
       </button>
       <button class="icon-subnav-btn" data-sub="reservations" onclick="switchSubView('reservations')">
-        <span class="icon-subnav-icon"><img src="icon-reservations.png" alt=""></span><span class="icon-subnav-label" data-i18n="subReservations">الحجوزات</span>
+        <span class="icon-subnav-icon"><img src="icon-reservations.png" alt=""></span><span class="icon-subnav-label" data-i18n="subReservations">Réservations</span>
       </button>
       <button class="icon-subnav-btn" data-sub="gifts" onclick="switchSubView('gifts')" style="position:relative;">
-        <span class="icon-subnav-icon">🎁</span><span class="bell-badge" id="giftsBadge" style="display:none; top:8px; left:8px;">0</span><span class="icon-subnav-label" data-i18n="subGifts">الهدايا</span>
+        <span class="icon-subnav-icon">🎁</span><span class="bell-badge" id="giftsBadge" style="display:none; top:8px; left:8px;">0</span><span class="icon-subnav-label" data-i18n="subGifts">Cadeaux</span>
       </button>
     </div>
 
     <!-- Sub-view: QR -->
     <div id="sub-qr" class="sub-view">
       <div class="card" style="text-align:center;">
-        <h3 style="margin-bottom:12px;" data-i18n="qrTitle">باركود قائمتك</h3>
+        <h3 style="margin-bottom:12px;" data-i18n="qrTitle">Le code QR de votre menu</h3>
         <canvas id="myQrCanvas"></canvas>
         <div id="myMenuUrl" style="display:none;"></div>
         <div id="copyLinkStatus" style="font-size:0.85rem; color:#3D6B4F; margin-top:8px;"></div>
-        <button class="btn btn-ghost" style="margin-top:12px;" onclick="copyMenuLink()" data-i18n="copyLinkBtn">📋 نسخ الرابط</button>
-        <button class="btn btn-ghost" style="margin-top:8px;" onclick="downloadMyQr()" data-i18n="downloadQr">تحميل الباركود</button>
+        <button class="btn btn-ghost" style="margin-top:12px;" onclick="copyMenuLink()" data-i18n="copyLinkBtn">📋 Copier le lien</button>
+        <button class="btn btn-ghost" style="margin-top:8px;" onclick="downloadMyQr()" data-i18n="downloadQr">Télécharger le code QR</button>
       </div>
     </div>
 
     <!-- Sub-view: Add item -->
     <div id="sub-add" class="sub-view">
       <div class="card">
-        <h3 style="margin-bottom:16px;" id="formTitle" data-i18n="addItemTitle">إضافة صنف جديد</h3>
+        <h3 style="margin-bottom:16px;" id="formTitle" data-i18n="addItemTitle">Ajouter un nouvel article</h3>
         <input type="hidden" id="itemId">
 
         <div class="field">
-          <label for="itemName" data-i18n="itemNameAr">اسم الصنف (عربي)</label>
-          <input type="text" id="itemName" placeholder="مثال: لاتيه">
+          <label for="itemName" data-i18n="itemNameAr">Nom de l'article (français)</label>
+          <input type="text" id="itemName" placeholder="ex. : Latté">
         </div>
 
         <div class="field">
-          <label for="itemNameEn" data-i18n="itemNameEnLbl">اسم الصنف (إنجليزي)</label>
+          <label for="itemNameEn" data-i18n="itemNameEnLbl">Nom de l'article (anglais)</label>
           <input type="text" id="itemNameEn" placeholder="e.g. Latte">
         </div>
 
         <div class="field">
-          <label for="itemCategory" data-i18n="itemCatAr">التصنيف (عربي)</label>
-          <input type="text" id="itemCategory" placeholder="مثال: مشروبات ساخنة">
+          <label for="itemCategory" data-i18n="itemCatAr">Catégorie (français)</label>
+          <input type="text" id="itemCategory" placeholder="ex. : Boissons chaudes">
           <div id="categoryChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
         </div>
 
         <div class="field">
-          <label for="itemCategoryEn" data-i18n="itemCatEn">التصنيف (إنجليزي)</label>
+          <label for="itemCategoryEn" data-i18n="itemCatEn">Catégorie (anglais)</label>
           <input type="text" id="itemCategoryEn" placeholder="e.g. Hot Drinks">
           <div id="categoryEnChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
         </div>
 
         <div class="field">
-          <label for="itemDesc" data-i18n="itemDescLbl">الوصف (اختياري)</label>
-          <input type="text" id="itemDesc" placeholder="مثال: إسبريسو مع حليب مبخر">
+          <label for="itemDesc" data-i18n="itemDescLbl">Description (facultatif)</label>
+          <input type="text" id="itemDesc" placeholder="ex. : Espresso et lait moussé">
         </div>
 
         <div class="field">
-          <label for="itemPrice" data-i18n="itemPriceLbl">السعر (ر.ع)</label>
+          <label for="itemPrice" data-i18n="itemPriceLbl">Prix (OMR)</label>
           <input type="number" step="0.01" id="itemPrice" placeholder="1.50">
         </div>
 
         <div class="field">
-          <label for="itemImage" data-i18n="itemImageLbl">صورة المنتج</label>
+          <label for="itemImage" data-i18n="itemImageLbl">Photo de l'article</label>
           <input type="file" id="itemImage" accept="image/*">
           <img id="itemImagePreview" src="" alt="" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; margin-top:8px; display:none;">
           <div id="uploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
@@ -120,16 +120,16 @@
 
         <div class="field" style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="itemAvailable" checked style="width:auto;">
-          <label for="itemAvailable" style="margin:0;" data-i18n="itemAvailableLbl">متاح حالياً</label>
+          <label for="itemAvailable" style="margin:0;" data-i18n="itemAvailableLbl">Disponible actuellement</label>
         </div>
 
         <div class="field" style="display:flex; align-items:center; gap:8px;">
           <input type="checkbox" id="itemSuggested" style="width:auto;">
-          <label for="itemSuggested" style="margin:0;" data-i18n="itemSuggestedLbl">اقترحه كإضافة بالسلة</label>
+          <label for="itemSuggested" style="margin:0;" data-i18n="itemSuggestedLbl">Suggérer comme ajout au panier</label>
         </div>
 
-        <button class="btn" onclick="saveItem()" data-i18n="saveItemBtn">حفظ الصنف</button>
-        <button class="btn btn-ghost" onclick="resetForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+        <button class="btn" onclick="saveItem()" data-i18n="saveItemBtn">Enregistrer l'article</button>
+        <button class="btn btn-ghost" onclick="resetForm()" style="margin-right:8px;" data-i18n="cancelBtn">Annuler</button>
         <div id="formError" class="error-msg"></div>
       </div>
     </div>
@@ -137,186 +137,184 @@
     <!-- Sub-view: Items list -->
     <div id="sub-list" class="sub-view active">
       <div class="card" id="itemsList">
-        <div class="state-msg">جاري التحميل...</div>
+        <div class="state-msg">Chargement...</div>
       </div>
 
-      <h3 style="margin:24px 0 12px;" data-i18n="categoryManagerTitle">إدارة التصنيفات</h3>
+      <h3 style="margin:24px 0 12px;" data-i18n="categoryManagerTitle">Gérer les catégories</h3>
       <div class="card" id="categoryManagerList">
-        <div class="state-msg">جاري التحميل...</div>
+        <div class="state-msg">Chargement...</div>
       </div>
     </div>
 
     <!-- Sub-view: Reservations (rooms + incoming bookings) -->
     <div id="sub-reservations" class="sub-view">
       <div class="card">
-        <h3 style="margin-bottom:16px;" id="roomFormTitle" data-i18n="addRoomTitle">إضافة قاعة جديدة</h3>
+        <h3 style="margin-bottom:16px;" id="roomFormTitle" data-i18n="addRoomTitle">Ajouter une salle</h3>
         <input type="hidden" id="roomId">
 
         <div class="field">
-          <label for="roomName" data-i18n="roomNameLbl">اسم القاعة (عربي)</label>
-          <input type="text" id="roomName" placeholder="مثال: القاعة الخاصة">
+          <label for="roomName" data-i18n="roomNameLbl">Nom de la salle (français)</label>
+          <input type="text" id="roomName" placeholder="ex. : Salon privé">
         </div>
         <div class="field">
-          <label for="roomNameEn" data-i18n="roomNameEnLbl">اسم القاعة (إنجليزي)</label>
+          <label for="roomNameEn" data-i18n="roomNameEnLbl">Nom de la salle (anglais)</label>
           <input type="text" id="roomNameEn" placeholder="e.g. Private Room">
         </div>
         <div class="field">
-          <label for="roomCapacity" data-i18n="roomCapacityLbl">السعة (عدد الأشخاص)</label>
+          <label for="roomCapacity" data-i18n="roomCapacityLbl">Capacité (personnes)</label>
           <input type="number" id="roomCapacity" min="1" placeholder="8">
         </div>
         <div class="field">
-          <label for="roomDesc" data-i18n="roomDescLbl">وصف مختصر (اختياري)</label>
+          <label for="roomDesc" data-i18n="roomDescLbl">Courte description (facultatif)</label>
           <input type="text" id="roomDesc">
         </div>
 
-        <button class="btn" onclick="saveRoom()" data-i18n="saveRoomBtn">حفظ القاعة</button>
-        <button class="btn btn-ghost" onclick="resetRoomForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+        <button class="btn" onclick="saveRoom()" data-i18n="saveRoomBtn">Enregistrer la salle</button>
+        <button class="btn btn-ghost" onclick="resetRoomForm()" style="margin-right:8px;" data-i18n="cancelBtn">Annuler</button>
         <div id="roomFormError" class="error-msg"></div>
       </div>
 
-      <h3 style="margin:20px 0 12px;" data-i18n="roomsListTitle">القاعات</h3>
+      <h3 style="margin:20px 0 12px;" data-i18n="roomsListTitle">Salles</h3>
       <div class="card" id="roomsList">
-        <div class="state-msg">جاري التحميل...</div>
+        <div class="state-msg">Chargement...</div>
       </div>
 
-      <h3 style="margin:28px 0 12px;" data-i18n="reservationsListTitle">الحجوزات الواردة</h3>
+      <h3 style="margin:28px 0 12px;" data-i18n="reservationsListTitle">Réservations entrantes</h3>
       <div class="card" id="reservationsList">
-        <div class="state-msg">جاري التحميل...</div>
+        <div class="state-msg">Chargement...</div>
       </div>
     </div>
 
     <div id="sub-gifts" class="sub-view">
-      <p style="color:var(--stone); font-size:0.85rem; margin-bottom:16px;" data-i18n="giftsIntro">
-        الهدايا اللي اشتراها عملاء لأصدقائهم وما تسلّمت بعد.
-      </p>
+      <p style="color:var(--stone); font-size:0.85rem; margin-bottom:16px;" data-i18n="giftsIntro">Cadeaux achetés par des clients pour leurs amis et pas encore récupérés.</p>
       <div id="pendingGiftsList">
-        <div class="state-msg">جاري التحميل...</div>
+        <div class="state-msg">Chargement...</div>
       </div>
     </div>
 
   </div>
 
-  <!-- ===================== TAB 2: نقطة البيع (POS) ===================== -->
+  <!-- ===================== TAB 2: POS (POS) ===================== -->
   <div id="view-pos" class="tab-view">
-    <button class="btn" style="width:100%; margin-bottom:20px;" onclick="openNewOrderModal()" data-i18n="newCounterOrderBtn">+ طلب جديد (كاونتر)</button>
+    <button class="btn" style="width:100%; margin-bottom:20px;" onclick="openNewOrderModal()" data-i18n="newCounterOrderBtn">+ Nouvelle commande (comptoir)</button>
 
     <div class="pos-columns">
       <div>
-        <div class="pos-column-title" data-i18n="colNew">جديد</div>
-        <div id="ordersColNew"><div class="state-msg">جاري التحميل...</div></div>
+        <div class="pos-column-title" data-i18n="colNew">Nouvelles</div>
+        <div id="ordersColNew"><div class="state-msg">Chargement...</div></div>
       </div>
       <div>
-        <div class="pos-column-title" data-i18n="colPreparing">قيد التحضير</div>
-        <div id="ordersColPreparing"><div class="state-msg">جاري التحميل...</div></div>
+        <div class="pos-column-title" data-i18n="colPreparing">En préparation</div>
+        <div id="ordersColPreparing"><div class="state-msg">Chargement...</div></div>
       </div>
     </div>
 
     <button type="button" class="completed-orders-toggle" id="completedOrdersToggle" onclick="toggleCompletedOrders()">
-      <span data-i18n="completedOrdersTitle">الطلبات المكتملة</span>
+      <span data-i18n="completedOrdersTitle">Commandes terminées</span>
       <span id="completedOrdersChevron">▾</span>
     </button>
-    <div id="completedOrdersList" style="display:none;"><div class="state-msg">جاري التحميل...</div></div>
+    <div id="completedOrdersList" style="display:none;"><div class="state-msg">Chargement...</div></div>
   </div>
 
-  <!-- ===================== TAB 3: المخزون (Inventory) ===================== -->
+  <!-- ===================== TAB 3: Inventory (Inventory) ===================== -->
   <div id="view-inventory" class="tab-view" style="padding-bottom:70px;">
     <p style="color:var(--stone); font-size:0.85rem; margin-bottom:16px;">
-      <span data-i18n="inventoryIntro">حدد كمية المخزون لأي صنف تبي تتابعه. اتركه فاضي لو الكمية غير محدودة.</span>
+      <span data-i18n="inventoryIntro">Indiquez une quantité en stock pour les articles à suivre. Laissez vide pour illimité.</span>
     </p>
     <div class="card" id="inventoryList">
-      <div class="state-msg">جاري التحميل...</div>
+      <div class="state-msg">Chargement...</div>
     </div>
 
     <div class="inventory-floating-save">
       <div id="inventorySaveStatus" style="font-size:0.8rem; color:#3D6B4F; text-align:center; margin-bottom:6px;"></div>
-      <button class="btn" style="width:100%;" onclick="saveAllInventory()">💾 <span data-i18n="saveChangesBtn">حفظ التغييرات</span></button>
+      <button class="btn" style="width:100%;" onclick="saveAllInventory()">💾 <span data-i18n="saveChangesBtn">Enregistrer les modifications</span></button>
     </div>
   </div>
 
-  <!-- ===================== TAB 4: المبيعات (Sales) ===================== -->
+  <!-- ===================== TAB 4: Sales (Sales) ===================== -->
   <div id="view-sales" class="tab-view">
     <div class="range-tabs">
-      <button class="range-tab active" data-range="day" onclick="loadSales('day', this)" data-i18n="rangeDay">اليوم</button>
-      <button class="range-tab" data-range="week" onclick="loadSales('week', this)" data-i18n="rangeWeek">هذا الأسبوع</button>
-      <button class="range-tab" data-range="month" onclick="loadSales('month', this)" data-i18n="rangeMonth">هذا الشهر</button>
+      <button class="range-tab active" data-range="day" onclick="loadSales('day', this)" data-i18n="rangeDay">Aujourd'hui</button>
+      <button class="range-tab" data-range="week" onclick="loadSales('week', this)" data-i18n="rangeWeek">Cette semaine</button>
+      <button class="range-tab" data-range="month" onclick="loadSales('month', this)" data-i18n="rangeMonth">Ce mois-ci</button>
     </div>
 
     <div class="sales-summary">
       <div class="sales-summary-box">
         <span class="big-num" id="salesTotal">0.00</span>
-        <span class="label" data-i18n="totalSalesLbl">إجمالي المبيعات (ر.ع)</span>
+        <span class="label" data-i18n="totalSalesLbl">Ventes totales (OMR)</span>
       </div>
       <div class="sales-summary-box">
         <span class="big-num" id="salesCount">0</span>
-        <span class="label" data-i18n="orderCountLbl">عدد الطلبات</span>
+        <span class="label" data-i18n="orderCountLbl">Nombre de commandes</span>
       </div>
       <div class="sales-summary-box">
         <span class="big-num" id="avgRating">—</span>
-        <span class="label" data-i18n="avgRatingLbl">متوسط التقييم</span>
+        <span class="label" data-i18n="avgRatingLbl">Note moyenne</span>
       </div>
     </div>
 
-    <h3 style="margin:0 0 12px;" data-i18n="paymentBreakdownTitle">حسب طريقة الدفع</h3>
+    <h3 style="margin:0 0 12px;" data-i18n="paymentBreakdownTitle">Par mode de paiement</h3>
     <div class="card" id="paymentBreakdown">
-      <div class="state-msg">جاري التحميل...</div>
+      <div class="state-msg">Chargement...</div>
     </div>
 
-    <h3 style="margin:0 0 12px;" data-i18n="staffBreakdownTitle">حسب البائع</h3>
+    <h3 style="margin:0 0 12px;" data-i18n="staffBreakdownTitle">Par employé</h3>
     <div class="card" id="staffBreakdown">
-      <div class="state-msg">جاري التحميل...</div>
+      <div class="state-msg">Chargement...</div>
     </div>
 
-    <h3 style="margin:0 0 12px;" data-i18n="topSellingTitle">الأكثر مبيعاً</h3>
+    <h3 style="margin:0 0 12px;" data-i18n="topSellingTitle">Meilleures ventes</h3>
     <div class="card" id="topItemsList">
-      <div class="state-msg">جاري التحميل...</div>
+      <div class="state-msg">Chargement...</div>
     </div>
 
     <div class="card">
-      <h3 style="margin-bottom:14px;" data-i18n="exportTitle">تصدير تقرير Excel</h3>
+      <h3 style="margin-bottom:14px;" data-i18n="exportTitle">Exporter un rapport Excel</h3>
       <div style="display:flex; gap:10px; margin-bottom:12px;">
         <div class="field" style="margin:0; flex:1;">
-          <label for="exportFrom" data-i18n="fromDateLbl">من تاريخ</label>
+          <label for="exportFrom" data-i18n="fromDateLbl">Du</label>
           <input type="date" id="exportFrom">
         </div>
         <div class="field" style="margin:0; flex:1;">
-          <label for="exportTo" data-i18n="toDateLbl">إلى تاريخ</label>
+          <label for="exportTo" data-i18n="toDateLbl">Au</label>
           <input type="date" id="exportTo">
         </div>
       </div>
       <div class="field">
-        <label for="exportLang" data-i18n="exportLangLbl">لغة الملف</label>
+        <label for="exportLang" data-i18n="exportLangLbl">Langue du fichier</label>
         <select id="exportLang">
-          <option value="ar">العربية</option>
+          <option value="fr">Français</option>
           <option value="en">English</option>
         </select>
       </div>
-      <button class="btn" style="width:100%;" onclick="exportSalesExcel()" data-i18n="exportBtn">📥 تصدير Excel</button>
+      <button class="btn" style="width:100%;" onclick="exportSalesExcel()" data-i18n="exportBtn">📥 Exporter Excel</button>
       <div id="exportError" class="error-msg"></div>
       <div id="exportStatus" style="font-size:0.85rem; color:#3D6B4F; margin-top:8px;"></div>
     </div>
   </div>
 
-  <!-- ===================== TAB 5: الحساب (Account) ===================== -->
+  <!-- ===================== TAB 5: Account (Account) ===================== -->
   <div id="view-account" class="tab-view">
 
     <div class="icon-subnav acc-icon-subnav">
       <button class="acc-icon-subnav-btn" data-accsub="info" onclick="switchAccountSub('info')">
-        <span class="icon-subnav-icon">🏪</span><span class="icon-subnav-label" data-i18n="accSubInfo">معلومات الكوفي</span>
+        <span class="icon-subnav-icon">🏪</span><span class="icon-subnav-label" data-i18n="accSubInfo">Infos du café</span>
       </button>
       <button class="acc-icon-subnav-btn" data-accsub="payment" onclick="switchAccountSub('payment')">
-        <span class="icon-subnav-icon">💳</span><span class="icon-subnav-label" data-i18n="accSubPayment">طرق الدفع</span>
+        <span class="icon-subnav-icon">💳</span><span class="icon-subnav-label" data-i18n="accSubPayment">Paiement</span>
       </button>
       <button class="acc-icon-subnav-btn" data-accsub="loyalty" onclick="switchAccountSub('loyalty')">
-        <span class="icon-subnav-icon">🎁</span><span class="icon-subnav-label" data-i18n="accSubLoyalty">نقاط الولاء</span>
+        <span class="icon-subnav-icon">🎁</span><span class="icon-subnav-label" data-i18n="accSubLoyalty">Fidélité</span>
       </button>
       <button class="acc-icon-subnav-btn" data-accsub="ordertypes" onclick="switchAccountSub('ordertypes')">
-        <span class="icon-subnav-icon">📋</span><span class="icon-subnav-label" data-i18n="accSubOrderTypes">أنواع الطلب</span>
+        <span class="icon-subnav-icon">📋</span><span class="icon-subnav-label" data-i18n="accSubOrderTypes">Types de commande</span>
       </button>
       <button class="acc-icon-subnav-btn" data-accsub="staff" onclick="switchAccountSub('staff')">
-        <span class="icon-subnav-icon">👥</span><span class="icon-subnav-label" data-i18n="accSubStaff">الموظفين</span>
+        <span class="icon-subnav-icon">👥</span><span class="icon-subnav-label" data-i18n="accSubStaff">Personnel</span>
       </button>
       <button class="acc-icon-subnav-btn" data-accsub="session" onclick="switchAccountSub('session')">
-        <span class="icon-subnav-icon">🔑</span><span class="icon-subnav-label" data-i18n="accSubSession">الجلسة</span>
+        <span class="icon-subnav-icon">🔑</span><span class="icon-subnav-label" data-i18n="accSubSession">Session</span>
       </button>
     </div>
 
@@ -325,207 +323,207 @@
 
     <div id="acc-sub-info" class="acc-sub-view">
     <div class="card">
-      <h3 style="margin-bottom:16px;" data-i18n="shopInfoTitle">معلومات الكوفي</h3>
+      <h3 style="margin-bottom:16px;" data-i18n="shopInfoTitle">Infos du café</h3>
 
       <div class="field" style="display:flex; align-items:center; gap:14px;">
         <img id="logoPreview" src="" alt="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background:var(--paper-dim); display:none;">
         <div style="flex:1;">
-          <label for="shopLogoInput" data-i18n="logoLbl">شعار الكوفي</label>
+          <label for="shopLogoInput" data-i18n="logoLbl">Logo du café</label>
           <input type="file" id="shopLogoInput" accept="image/*">
           <div id="logoUploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
         </div>
       </div>
 
       <div class="field">
-        <label for="shopCoverInput" data-i18n="coverLbl">صورة الغلاف</label>
+        <label for="shopCoverInput" data-i18n="coverLbl">Photo de couverture</label>
         <input type="file" id="shopCoverInput" accept="image/*">
         <img id="coverPreview" src="" alt="" style="width:100%; max-height:100px; object-fit:cover; border-radius:8px; margin-top:8px; display:none;">
         <div id="coverUploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
       </div>
 
       <div class="field">
-        <label for="shopNameInput" data-i18n="shopNameArLbl">اسم المحل (عربي)</label>
+        <label for="shopNameInput" data-i18n="shopNameArLbl">Nom du café (français)</label>
         <input type="text" id="shopNameInput">
       </div>
 
       <div class="field">
-        <label for="shopNameEnInput" data-i18n="shopNameEnLbl">اسم المحل (إنجليزي)</label>
+        <label for="shopNameEnInput" data-i18n="shopNameEnLbl">Nom du café (anglais)</label>
         <input type="text" id="shopNameEnInput" placeholder="e.g. Sarj Coffee">
       </div>
 
       <div class="field">
-        <label for="shopTaglineInput" data-i18n="taglineArLbl">شعار نصي قصير (عربي)</label>
+        <label for="shopTaglineInput" data-i18n="taglineArLbl">Courte accroche (français)</label>
         <input type="text" id="shopTaglineInput">
       </div>
 
       <div class="field">
-        <label for="shopTaglineEnInput" data-i18n="taglineEnLbl">شعار نصي قصير (إنجليزي)</label>
+        <label for="shopTaglineEnInput" data-i18n="taglineEnLbl">Courte accroche (anglais)</label>
         <input type="text" id="shopTaglineEnInput" placeholder="e.g. The pleasure of the moment">
       </div>
 
       <div class="field">
-        <label for="shopLocationInput" data-i18n="locationLbl">الموقع</label>
+        <label for="shopLocationInput" data-i18n="locationLbl">Emplacement</label>
         <input type="text" id="shopLocationInput">
       </div>
 
       <div class="field">
-        <label data-i18n="hoursLbl">ساعات العمل</label>
+        <label data-i18n="hoursLbl">Heures d'ouverture</label>
         <div id="weeklyHoursEditor" class="weekly-hours-editor"></div>
       </div>
 
       <div class="field">
-        <label for="shopPhoneInput" data-i18n="phoneLbl">رقم الهاتف</label>
+        <label for="shopPhoneInput" data-i18n="phoneLbl">Numéro de téléphone</label>
         <input type="tel" id="shopPhoneInput" placeholder="+968 9xxxxxxx">
       </div>
 
       <div class="field">
-        <label for="shopWhatsappInput" data-i18n="whatsappLbl">رقم الواتساب</label>
+        <label for="shopWhatsappInput" data-i18n="whatsappLbl">Numéro WhatsApp</label>
         <input type="tel" id="shopWhatsappInput" placeholder="+968 9xxxxxxx">
       </div>
 
       <div class="field">
-        <label for="shopLocationLinkInput" data-i18n="locationLinkLbl">رابط الموقع (خرائط جوجل)</label>
+        <label for="shopLocationLinkInput" data-i18n="locationLinkLbl">Lien de l'emplacement (Google Maps)</label>
         <input type="text" id="shopLocationLinkInput" placeholder="https://maps.google.com/..." dir="ltr" style="text-align:left;">
       </div>
 
       <div class="field">
-        <label for="shopInstagramLinkInput" data-i18n="instagramLinkLbl">رابط انستقرام</label>
+        <label for="shopInstagramLinkInput" data-i18n="instagramLinkLbl">Lien Instagram</label>
         <input type="text" id="shopInstagramLinkInput" placeholder="https://instagram.com/..." dir="ltr" style="text-align:left;">
       </div>
 
       <div class="field">
-        <label for="shopEmailInput" data-i18n="emailLbl">البريد الإلكتروني</label>
+        <label for="shopEmailInput" data-i18n="emailLbl">Courriel</label>
         <input type="email" id="shopEmailInput">
       </div>
 
       <div class="field">
-        <label for="shopColorInput" data-i18n="colorLbl">اللون المميز</label>
+        <label for="shopColorInput" data-i18n="colorLbl">Couleur principale</label>
         <input type="color" id="shopColorInput" style="width:80px; padding:4px;">
       </div>
 
       <div class="field">
-        <label for="shopPrepTimeInput" data-i18n="prepTimeLbl">الوقت التقريبي للتحضير (دقائق)</label>
+        <label for="shopPrepTimeInput" data-i18n="prepTimeLbl">Temps de préparation estimé (minutes)</label>
         <input type="number" id="shopPrepTimeInput" min="1">
       </div>
 
       <div class="field" style="display:flex; align-items:center; gap:8px;">
         <input type="checkbox" id="showRatingPublicly" style="width:auto;">
-        <label for="showRatingPublicly" style="margin:0;" data-i18n="showRatingLbl">إظهار متوسط تقييمي للعملاء بالقائمة</label>
+        <label for="showRatingPublicly" style="margin:0;" data-i18n="showRatingLbl">Afficher ma note moyenne aux clients sur le menu</label>
       </div>
 
-      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">Enregistrer les modifications</button>
     </div>
     </div>
 
     <div id="acc-sub-payment" class="acc-sub-view">
     <div class="card">
-      <h3 style="margin-bottom:16px;" data-i18n="accSubPayment">طرق الدفع</h3>
+      <h3 style="margin-bottom:16px;" data-i18n="accSubPayment">Paiement</h3>
 
       <div class="field">
-        <label data-i18n="paymentOptionsLbl">طرق الدفع المتاحة للعميل</label>
+        <label data-i18n="paymentOptionsLbl">Modes de paiement offerts aux clients</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="payCashEnabled" style="width:auto;" checked>
-            <label for="payCashEnabled" style="margin:0;" data-i18n="payCash">💵 نقداً</label>
+            <label for="payCashEnabled" style="margin:0;" data-i18n="payCash">💵 Comptant</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="payTransferEnabled" style="width:auto;" checked>
-            <label for="payTransferEnabled" style="margin:0;" data-i18n="payTransfer">🏦 تحويل بنكي</label>
+            <label for="payTransferEnabled" style="margin:0;" data-i18n="payTransfer">🏦 Virement bancaire</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="payCardEnabled" style="width:auto;" checked>
-            <label for="payCardEnabled" style="margin:0;" data-i18n="payCard">💳 فيزا / بطاقة</label>
+            <label for="payCardEnabled" style="margin:0;" data-i18n="payCard">💳 Carte</label>
           </div>
         </div>
       </div>
 
       <div class="field">
-        <label for="bankAccountNameInput" data-i18n="bankAccountNameLbl">اسم صاحب الحساب البنكي (بالإنجليزي فقط)</label>
+        <label for="bankAccountNameInput" data-i18n="bankAccountNameLbl">Nom du titulaire du compte (anglais seulement)</label>
         <input type="text" id="bankAccountNameInput" placeholder="e.g. AHMED SAID" dir="ltr" style="text-align:left;">
       </div>
 
       <div class="field">
-        <label for="bankTransferNumberInput" data-i18n="bankTransferNumberLbl">رقم التحويل</label>
+        <label for="bankTransferNumberInput" data-i18n="bankTransferNumberLbl">Numéro de virement</label>
         <div style="display:flex; gap:8px;">
           <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
           <input type="text" inputmode="numeric" id="bankTransferNumberInput" placeholder="9xxxxxxx" style="flex:1;">
         </div>
       </div>
 
-      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">Enregistrer les modifications</button>
     </div>
     </div>
 
     <div id="acc-sub-loyalty" class="acc-sub-view">
     <div class="card">
-      <h3 style="margin-bottom:16px;" data-i18n="accSubLoyalty">نقاط الولاء</h3>
+      <h3 style="margin-bottom:16px;" data-i18n="accSubLoyalty">Fidélité</h3>
 
       <div class="field" style="display:flex; align-items:center; gap:8px;">
         <input type="checkbox" id="loyaltyEnabled" style="width:auto;">
-        <label for="loyaltyEnabled" style="margin:0;" data-i18n="loyaltyEnabledLbl">تفعيل نظام نقاط الولاء</label>
+        <label for="loyaltyEnabled" style="margin:0;" data-i18n="loyaltyEnabledLbl">Activer le programme de points fidélité</label>
       </div>
       <div id="loyaltySettingsFields" style="display:none;">
         <div class="field">
-          <label for="loyaltyThreshold" data-i18n="loyaltyThresholdLbl">عدد الطلبات المطلوب للمكافأة</label>
+          <label for="loyaltyThreshold" data-i18n="loyaltyThresholdLbl">Commandes requises pour une récompense</label>
           <input type="number" id="loyaltyThreshold" min="2" value="6">
         </div>
         <div class="field">
-          <label for="loyaltyRewardText" data-i18n="loyaltyRewardTextLbl">نص المكافأة</label>
-          <input type="text" id="loyaltyRewardText" placeholder="مثال: قهوة مجانية">
+          <label for="loyaltyRewardText" data-i18n="loyaltyRewardTextLbl">Description de la récompense</label>
+          <input type="text" id="loyaltyRewardText" placeholder="ex. : Un café gratuit">
         </div>
       </div>
 
-      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">Enregistrer les modifications</button>
     </div>
 
-    <h3 style="margin:24px 0 12px;" data-i18n="loyaltyCustomersTitle">نقاط عملاء الولاء</h3>
+    <h3 style="margin:24px 0 12px;" data-i18n="loyaltyCustomersTitle">Clients fidèles</h3>
     <div class="card" id="loyaltyCustomersList">
-      <div class="state-msg">جاري التحميل...</div>
+      <div class="state-msg">Chargement...</div>
     </div>
     </div>
 
     <div id="acc-sub-ordertypes" class="acc-sub-view">
     <div class="card">
-      <h3 style="margin-bottom:16px;" data-i18n="accSubOrderTypes">أنواع الطلب</h3>
+      <h3 style="margin-bottom:16px;" data-i18n="accSubOrderTypes">Types de commande</h3>
 
       <div class="field">
-        <label data-i18n="orderTypesLbl">أنواع الطلب المتاحة للعميل</label>
+        <label data-i18n="orderTypesLbl">Types de commande offerts aux clients</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="orderTypeTableEnabled" style="width:auto;" checked>
-            <label for="orderTypeTableEnabled" style="margin:0;" data-i18n="orderFromTable">🍽️ طلب من الطاولة</label>
+            <label for="orderTypeTableEnabled" style="margin:0;" data-i18n="orderFromTable">🍽️ Commander à la table</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="orderTypeCarEnabled" style="width:auto;" checked>
-            <label for="orderTypeCarEnabled" style="margin:0;" data-i18n="orderFromCar">🚗 طلب من السيارة</label>
+            <label for="orderTypeCarEnabled" style="margin:0;" data-i18n="orderFromCar">🚗 Commander de la voiture</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="orderTypeDeliveryEnabled" style="width:auto;">
-            <label for="orderTypeDeliveryEnabled" style="margin:0;" data-i18n="orderFromDelivery">🛵 طلب خارجي (توصيل)</label>
+            <label for="orderTypeDeliveryEnabled" style="margin:0;" data-i18n="orderFromDelivery">🛵 Livraison</label>
           </div>
         </div>
       </div>
 
-      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">Enregistrer les modifications</button>
     </div>
     </div>
 
     <div id="acc-sub-staff" class="acc-sub-view">
     <!-- Staff management — visible only to the actual shop owner, never to an employee -->
     <div class="card" id="employeesCard" style="display:none;">
-      <h3 style="margin-bottom:16px;" data-i18n="employeesTitle">الموظفين</h3>
+      <h3 style="margin-bottom:16px;" data-i18n="employeesTitle">Personnel</h3>
 
       <input type="hidden" id="empId">
       <div class="field">
-        <label for="empName" data-i18n="empNameLbl">اسم الموظف</label>
-        <input type="text" id="empName" placeholder="مثال: أحمد">
+        <label for="empName" data-i18n="empNameLbl">Nom de l'employé</label>
+        <input type="text" id="empName" placeholder="ex. : Marie">
       </div>
       <div class="field">
-        <label for="empEmail" data-i18n="empEmailLbl">البريد الإلكتروني</label>
+        <label for="empEmail" data-i18n="empEmailLbl">Courriel</label>
         <input type="email" id="empEmail" placeholder="employee@example.com">
       </div>
       <div class="field">
-        <label for="empPin" data-i18n="empPasswordLbl">كلمة المرور (6 أحرف على الأقل)</label>
+        <label for="empPin" data-i18n="empPasswordLbl">Mot de passe (6 caractères minimum)</label>
         <div style="display:flex; gap:6px;">
           <input type="password" id="empPin" placeholder="••••••" style="flex:1;">
           <button type="button" onclick="toggleEmpPwVisibility()" class="btn btn-ghost" style="padding:8px 12px;">👁️</button>
@@ -533,45 +531,45 @@
       </div>
 
       <div class="field">
-        <label data-i18n="empPermissionsLbl">الصلاحيات المسموحة</label>
+        <label data-i18n="empPermissionsLbl">Autorisations accordées</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="permDashboard" style="width:auto;">
-            <label for="permDashboard" style="margin:0;" data-i18n="navDashboard">لوحة التحكم</label>
+            <label for="permDashboard" style="margin:0;" data-i18n="navDashboard">Tableau de bord</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="permPos" style="width:auto;">
-            <label for="permPos" style="margin:0;" data-i18n="navPos">نقطة البيع</label>
+            <label for="permPos" style="margin:0;" data-i18n="navPos">Caisse</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="permInventory" style="width:auto;">
-            <label for="permInventory" style="margin:0;" data-i18n="navInventory">المخزون</label>
+            <label for="permInventory" style="margin:0;" data-i18n="navInventory">Inventaire</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="permSales" style="width:auto;">
-            <label for="permSales" style="margin:0;" data-i18n="navSales">المبيعات</label>
+            <label for="permSales" style="margin:0;" data-i18n="navSales">Ventes</label>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="permAccount" style="width:auto;">
-            <label for="permAccount" style="margin:0;" data-i18n="navAccount">الحساب</label>
+            <label for="permAccount" style="margin:0;" data-i18n="navAccount">Compte</label>
           </div>
         </div>
-        <p style="color:var(--stone); font-size:0.78rem; margin-top:8px;" data-i18n="posPrintNote">صلاحية "نقطة البيع" تشمل تلقائياً إمكانية طباعة الفواتير.</p>
+        <p style="color:var(--stone); font-size:0.78rem; margin-top:8px;" data-i18n="posPrintNote">L'autorisation « Caisse » inclut automatiquement l'impression des reçus.</p>
       </div>
 
-      <button class="btn" onclick="saveEmployee()" id="saveEmpBtn" data-i18n="addEmployeeBtn">إضافة موظف</button>
-      <button class="btn btn-ghost" onclick="resetEmployeeForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+      <button class="btn" onclick="saveEmployee()" id="saveEmpBtn" data-i18n="addEmployeeBtn">Ajouter l'employé</button>
+      <button class="btn btn-ghost" onclick="resetEmployeeForm()" style="margin-right:8px;" data-i18n="cancelBtn">Annuler</button>
       <div id="empFormError" class="error-msg"></div>
 
-      <h4 style="margin:20px 0 10px;" data-i18n="currentEmployeesTitle">الموظفين الحاليين</h4>
-      <div id="employeesList"><div class="state-msg">جاري التحميل...</div></div>
+      <h4 style="margin:20px 0 10px;" data-i18n="currentEmployeesTitle">Personnel actuel</h4>
+      <div id="employeesList"><div class="state-msg">Chargement...</div></div>
     </div>
     </div>
 
     <div id="acc-sub-session" class="acc-sub-view">
     <div class="card">
       <div id="loggedInAsText" style="text-align:center; color:var(--stone); font-size:0.85rem; margin-bottom:14px;"></div>
-      <button class="btn btn-ghost" style="width:100%;" onclick="logout()" data-i18n="logoutBtn">تسجيل خروج</button>
+      <button class="btn btn-ghost" style="width:100%;" onclick="logout()" data-i18n="logoutBtn">Se déconnecter</button>
     </div>
     </div>
 
@@ -582,19 +580,19 @@
 <!-- ===================== Bottom navigation ===================== -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
-    <span class="nav-icon">📋</span><span class="nav-label" data-i18n="navDashboard">لوحة التحكم</span>
+    <span class="nav-icon">📋</span><span class="nav-label" data-i18n="navDashboard">Tableau de bord</span>
   </button>
   <button class="nav-item" data-tab="pos" onclick="switchTab('pos')">
-    <span class="nav-icon">🧾</span><span class="nav-label" data-i18n="navPos">نقطة البيع</span>
+    <span class="nav-icon">🧾</span><span class="nav-label" data-i18n="navPos">Caisse</span>
   </button>
   <button class="nav-item" data-tab="inventory" onclick="switchTab('inventory')">
-    <span class="nav-icon">📦</span><span class="nav-label" data-i18n="navInventory">المخزون</span>
+    <span class="nav-icon">📦</span><span class="nav-label" data-i18n="navInventory">Inventaire</span>
   </button>
   <button class="nav-item" data-tab="sales" onclick="switchTab('sales')">
-    <span class="nav-icon">📊</span><span class="nav-label" data-i18n="navSales">المبيعات</span>
+    <span class="nav-icon">📊</span><span class="nav-label" data-i18n="navSales">Ventes</span>
   </button>
   <button class="nav-item" data-tab="account" onclick="switchTab('account')">
-    <span class="nav-icon">👤</span><span class="nav-label" data-i18n="navAccount">الحساب</span>
+    <span class="nav-icon">👤</span><span class="nav-label" data-i18n="navAccount">Compte</span>
   </button>
 </div>
 
@@ -739,7 +737,7 @@ auth.onAuthStateChanged(async user => {
 });
 
 // Hides bottom-nav tabs (and the icon-subnav is naturally inside the
-// "لوحة التحكم" tab, so hiding that whole tab covers it) that this
+// "Dashboard" tab, so hiding that whole tab covers it) that this
 // employee wasn't granted. Also jumps to their first allowed tab.
 function applyEmployeePermissionsUI() {
   const tabPermMap = { dashboard: 'dashboard', pos: 'pos', inventory: 'inventory', sales: 'sales', account: 'account' };
@@ -747,8 +745,8 @@ function applyEmployeePermissionsUI() {
 
   document.querySelectorAll('.nav-item').forEach(btn => {
     const tab = btn.getAttribute('data-tab');
-    // "لوحة التحكم" now also hosts the gifts feature, which only needs
-    // "نقطة البيع" access — so this ONE tab is visible with either
+    // "Dashboard" now also hosts the gifts feature, which only needs
+    // "POS" access — so this ONE tab is visible with either
     // permission, unlike the others which each need their own single permission.
     const allowed = tab === 'dashboard'
       ? (employeePermissions.dashboard === true || employeePermissions.pos === true)
@@ -757,8 +755,8 @@ function applyEmployeePermissionsUI() {
     if (allowed && !firstAllowed) firstAllowed = tab;
   });
 
-  // Within "لوحة التحكم" itself: the menu/QR/reservations tools still need
-  // real "dashboard" access. The gifts icon needs "نقطة البيع" specifically
+  // Within "Dashboard" itself: the menu/QR/reservations tools still need
+  // real "dashboard" access. The gifts icon needs "POS" specifically
   // — matching the Firestore rule for redeeming a gift exactly, so nobody
   // ever sees a delivery button that would actually fail when pressed.
   const hasDashboardAccess = employeePermissions.dashboard === true;
@@ -772,7 +770,7 @@ function applyEmployeePermissionsUI() {
 
   // If they only have gift access in this tab (no real dashboard
   // permission), land them on the gifts screen itself rather than the
-  // default "قائمة الأصناف" view they have no access to.
+  // default "Items list" view they have no access to.
   if (!hasDashboardAccess && hasGiftAccess) {
     switchSubView('gifts');
   }
@@ -798,17 +796,17 @@ function showVerifyEmailScreen(user) {
   wrap.innerHTML = `
     <div class="card" style="text-align:center;">
       <div style="font-size:2.5rem; margin-bottom:10px;">📧</div>
-      <h3 style="margin-bottom:10px;">أكد بريدك الإلكتروني</h3>
+      <h3 style="margin-bottom:10px;">${dt('verifyEmailTitle')}</h3>
       <p style="color:var(--stone); font-size:0.9rem; margin-bottom:16px;">
-        أرسلنا رابط تأكيد إلى <strong>${user.email}</strong>. اضغط الرابط، وبعدين حدّث هذي الصفحة.
+        ${dt('verifyEmailSentPre')} <strong>${user.email}</strong>. ${dt('verifyEmailSentPost')}
       </p>
       <p style="color:#B3441E; font-size:0.85rem; margin-bottom:16px;">
-        📩 لو ما لقيت الإيميل، تفقد مجلد "البريد غير المرغوب / Spam".
+        ${dt('verifySpamHint')}
       </p>
-      <button class="btn" onclick="location.reload()">تحققت — حدّث الصفحة</button>
-      <button class="btn btn-ghost" style="margin-top:10px;" onclick="resendVerification()">إعادة إرسال الرابط</button>
+      <button class="btn" onclick="location.reload()">${dt('verifiedReloadBtn')}</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="resendVerification()">${dt('resendLinkBtn')}</button>
       <div id="resendMsg" style="font-size:0.85rem; color:#3D6B4F; margin-top:10px;"></div>
-      <button class="btn btn-ghost" style="margin-top:16px; width:100%;" onclick="logout()">تسجيل خروج</button>
+      <button class="btn btn-ghost" style="margin-top:16px; width:100%;" onclick="logout()">${dt('logoutBtn')}</button>
     </div>
   `;
   document.body.appendChild(wrap);
@@ -816,7 +814,7 @@ function showVerifyEmailScreen(user) {
 
 function resendVerification() {
   auth.currentUser.sendEmailVerification()
-    .then(() => { document.getElementById('resendMsg').textContent = 'تم إرسال الرابط مرة أخرى ✓'; })
+    .then(() => { document.getElementById('resendMsg').textContent = dt('linkResentMsg'); })
     .catch(err => { console.error(err); });
 }
 
@@ -841,13 +839,13 @@ async function maybeActivateTrial() {
 }
 // ===================== Weekly opening hours (Google-style editor) =====================
 const weekDays = [
-  { key: 'sat', label: 'السبت', labelEn: 'Saturday' },
-  { key: 'sun', label: 'الأحد', labelEn: 'Sunday' },
-  { key: 'mon', label: 'الاثنين', labelEn: 'Monday' },
-  { key: 'tue', label: 'الثلاثاء', labelEn: 'Tuesday' },
-  { key: 'wed', label: 'الأربعاء', labelEn: 'Wednesday' },
-  { key: 'thu', label: 'الخميس', labelEn: 'Thursday' },
-  { key: 'fri', label: 'الجمعة', labelEn: 'Friday' }
+  { key: 'mon', label: 'Lundi', labelEn: 'Monday' },
+  { key: 'tue', label: 'Mardi', labelEn: 'Tuesday' },
+  { key: 'wed', label: 'Mercredi', labelEn: 'Wednesday' },
+  { key: 'thu', label: 'Jeudi', labelEn: 'Thursday' },
+  { key: 'fri', label: 'Vendredi', labelEn: 'Friday' },
+  { key: 'sat', label: 'Samedi', labelEn: 'Saturday' },
+  { key: 'sun', label: 'Dimanche', labelEn: 'Sunday' }
 ];
 
 function renderWeeklyHoursEditor(hoursData) {
@@ -921,17 +919,16 @@ function collectWeeklyHours() {
 
 function formatTime12h(time24) {
   const [h, m] = time24.split(':').map(Number);
-  const period = h >= 12 ? 'م' : 'ص';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  // French (Québec) convention: 24-hour clock, e.g. "8 h 00", "17 h 30"
+  return `${h} h ${String(m).padStart(2, '0')}`;
 }
 
 function formatHoursForDisplay(hours) {
   return weekDays.map(day => {
     const d = hours[day.key];
-    if (!d || d.closed) return `${day.label}: مغلق`;
-    let line = `${day.label}: ${formatTime12h(d.open)} - ${formatTime12h(d.close)}`;
-    if (d.hasSecond) line += `، ${formatTime12h(d.open2)} - ${formatTime12h(d.close2)}`;
+    if (!d || d.closed) return `${day.label} : fermé`;
+    let line = `${day.label} : ${formatTime12h(d.open)} - ${formatTime12h(d.close)}`;
+    if (d.hasSecond) line += `, ${formatTime12h(d.open2)} - ${formatTime12h(d.close2)}`;
     return line;
   }).join('\n');
 }
@@ -951,7 +948,7 @@ async function loadEmployees() {
   let html = '';
   snap.forEach(doc => {
     const e = doc.data();
-    const grantedList = Object.keys(permLabels).filter(k => e.permissions && e.permissions[k]).map(k => permLabels[k]).join('، ') || dt('noPermissionsShort');
+    const grantedList = Object.keys(permLabels).filter(k => e.permissions && e.permissions[k]).map(k => permLabels[k]).join(', ') || dt('noPermissionsShort');
     html += `
       <div class="dashboard-item">
         <div class="grow">
@@ -1097,255 +1094,278 @@ function logout() {
 }
 
 // ===================== Dashboard language toggle (AR/EN) =====================
-let dashLang = localStorage.getItem('dashLang') || 'ar';
+let dashLang = localStorage.getItem('dashLang');
+if (dashLang !== 'fr' && dashLang !== 'en') dashLang = 'fr';
 
 const dashT = {
-  pageTitle: { ar: 'لوحة التحكم', en: 'Dashboard' },
-  checkingLogin: { ar: 'جاري التحقق من تسجيل الدخول...', en: 'Checking sign-in...' },
-  navDashboard: { ar: 'لوحة التحكم', en: 'Dashboard' },
-  navPos: { ar: 'نقطة البيع', en: 'POS' },
-  navInventory: { ar: 'المخزون', en: 'Inventory' },
-  navSales: { ar: 'المبيعات', en: 'Sales' },
-  navAccount: { ar: 'الحساب', en: 'Account' },
-  subQr: { ar: 'الباركود', en: 'QR Code' },
-  subAdd: { ar: 'إضافة صنف', en: 'Add Item' },
-  subList: { ar: 'قائمة الأصناف', en: 'Items' },
-  qrTitle: { ar: 'باركود قائمتك', en: 'Your menu QR code' },
-  downloadQr: { ar: 'تحميل الباركود', en: 'Download QR code' },
-  itemNameAr: { ar: 'اسم الصنف (عربي)', en: 'Item name (Arabic)' },
-  itemNameEnLbl: { ar: 'اسم الصنف (إنجليزي)', en: 'Item name (English)' },
-  itemCatAr: { ar: 'التصنيف (عربي)', en: 'Category (Arabic)' },
-  itemCatEn: { ar: 'التصنيف (إنجليزي)', en: 'Category (English)' },
-  itemDescLbl: { ar: 'الوصف (اختياري)', en: 'Description (optional)' },
-  itemPriceLbl: { ar: 'السعر (ر.ع)', en: 'Price (OMR)' },
-  itemImageLbl: { ar: 'صورة المنتج', en: 'Item photo' },
-  itemAvailableLbl: { ar: 'متاح حالياً', en: 'Currently available' },
-  saveItemBtn: { ar: 'حفظ الصنف', en: 'Save item' },
-  cancelBtn: { ar: 'إلغاء', en: 'Cancel' },
-  newCounterOrderBtn: { ar: '+ طلب جديد (كاونتر)', en: '+ New order (counter)' },
-  incomingOrdersTitle: { ar: 'الطلبات الواردة', en: 'Incoming orders' },
-  inventoryIntro: { ar: 'حدد كمية المخزون لأي صنف تبي تتابعه. اتركه فاضي لو الكمية غير محدودة.', en: 'Set a stock count for any item you want to track. Leave it blank for unlimited.' },
-  rangeDay: { ar: 'اليوم', en: 'Today' },
-  rangeWeek: { ar: 'هذا الأسبوع', en: 'This week' },
-  rangeMonth: { ar: 'هذا الشهر', en: 'This month' },
-  totalSalesLbl: { ar: 'إجمالي المبيعات (ر.ع)', en: 'Total sales (OMR)' },
-  orderCountLbl: { ar: 'عدد الطلبات', en: 'Number of orders' },
-  topSellingTitle: { ar: 'الأكثر مبيعاً', en: 'Top selling' },
-  shopInfoTitle: { ar: 'معلومات الكوفي', en: 'Shop info' },
-  accSubInfo: { ar: 'معلومات الكوفي', en: 'Shop info' },
-  accSubPayment: { ar: 'طرق الدفع', en: 'Payment' },
-  accSubLoyalty: { ar: 'نقاط الولاء', en: 'Loyalty' },
-  accSubOrderTypes: { ar: 'أنواع الطلب', en: 'Order types' },
-  accSubStaff: { ar: 'الموظفين', en: 'Staff' },
-  accSubSession: { ar: 'الجلسة', en: 'Session' },
-  logoLbl: { ar: 'شعار الكوفي', en: 'Shop logo' },
-  coverLbl: { ar: 'صورة الغلاف', en: 'Cover photo' },
-  shopNameArLbl: { ar: 'اسم المحل (عربي)', en: 'Shop name (Arabic)' },
-  shopNameEnLbl: { ar: 'اسم المحل (إنجليزي)', en: 'Shop name (English)' },
-  taglineArLbl: { ar: 'شعار نصي قصير (عربي)', en: 'Short tagline (Arabic)' },
-  taglineEnLbl: { ar: 'شعار نصي قصير (إنجليزي)', en: 'Short tagline (English)' },
-  locationLbl: { ar: 'الموقع', en: 'Location' },
-  phoneLbl: { ar: 'رقم الهاتف', en: 'Phone number' },
-  whatsappLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
-  locationLinkLbl: { ar: 'رابط الموقع (خرائط جوجل)', en: 'Location link (Google Maps)' },
-  instagramLinkLbl: { ar: 'رابط انستقرام', en: 'Instagram link' },
-  emailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
-  colorLbl: { ar: 'اللون المميز', en: 'Accent color' },
-  prepTimeLbl: { ar: 'الوقت التقريبي للتحضير (دقائق)', en: 'Estimated prep time (minutes)' },
-  showRatingLbl: { ar: 'إظهار متوسط تقييمي للعملاء بالقائمة', en: 'Show my average rating to customers on the menu' },
-  saveChangesBtn: { ar: 'حفظ التغييرات', en: 'Save changes' },
-  logoutBtn: { ar: 'تسجيل خروج', en: 'Log out' },
-  pressBackAgainToExit: { ar: 'اضغط رجوع مرة ثانية للخروج', en: 'Press back again to exit' },
-  loggedInAs: { ar: 'داخل بحساب', en: 'Logged in as' },
-  employeesTitle: { ar: 'الموظفين', en: 'Staff' },
-  empNameLbl: { ar: 'اسم الموظف', en: "Employee's name" },
-  empEmailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
-  empPasswordLbl: { ar: 'كلمة المرور (6 أحرف على الأقل)', en: 'Password (6 characters minimum)' },
-  empPermissionsLbl: { ar: 'الصلاحيات المسموحة', en: 'Allowed permissions' },
-  posPrintNote: { ar: 'صلاحية "نقطة البيع" تشمل تلقائياً إمكانية طباعة الفواتير.', en: 'The "POS" permission automatically includes the ability to print receipts.' },
-  addEmployeeBtn: { ar: 'إضافة موظف', en: 'Add employee' },
-  currentEmployeesTitle: { ar: 'الموظفين الحاليين', en: 'Current staff' },
-  noEmployeesYet: { ar: 'لا يوجد موظفين بعد.', en: 'No staff added yet.' },
-  noPermissionsShort: { ar: 'بدون صلاحيات', en: 'No permissions' },
-  empInvalidFields: { ar: 'أدخل اسم صحيح وبريد إلكتروني صحيح.', en: 'Enter a valid name and email address.' },
-  empPinTooShort: { ar: 'كلمة المرور لازم تكون 6 أحرف على الأقل.', en: 'Password must be at least 6 characters.' },
-  atLeastOnePermissionError: { ar: 'فعّل صلاحية واحدة على الأقل للموظف.', en: 'Enable at least one permission for this employee.' },
-  empPhoneTaken: { ar: 'هذا البريد الإلكتروني مستخدم مسبقاً لموظف آخر.', en: 'This email is already used by another employee.' },
-  pinLockedNote: { ar: '(ما يتغير من هنا)', en: '(cannot be changed here)' },
-  confirmDeleteEmployee: { ar: 'متأكد تبي تحذف هذا الموظف؟ بيفقد الوصول فوراً.', en: 'Are you sure you want to remove this employee? They will lose access immediately.' },
-  noPermissionsMsg: { ar: 'ما عندك أي صلاحية مفعّلة حالياً. تواصل مع صاحب الكوفي.', en: "You don't have any permissions enabled. Please contact the shop owner." },
-  loadingGeneric: { ar: 'جاري التحميل...', en: 'Loading...' },
-  noItemsYet: { ar: 'لا توجد أصناف بعد. أضف أول صنف بالأعلى.', en: 'No items yet. Add your first one above.' },
-  categoryManagerTitle: { ar: 'إدارة التصنيفات', en: 'Manage categories' },
-  noCategoriesYet: { ar: 'لا توجد تصنيفات بعد.', en: 'No categories yet.' },
-  itemsInCategoryWord: { ar: 'صنف', en: 'items' },
-  renameCategoryTitle: { ar: 'تعديل التصنيف', en: 'Edit category' },
-  confirmDeleteCategory: { ar: 'متأكد تبي تحذف هذا التصنيف؟ الأصناف بداخله بتصير بدون تصنيف، بس ما بتنحذف.', en: 'Delete this category? Its items will become uncategorized, but will NOT be deleted.' },
-  uncategorizedLabel: { ar: 'بدون تصنيف', en: 'Uncategorized' },
-  editBtn: { ar: 'تعديل', en: 'Edit' },
-  deleteBtn: { ar: 'حذف', en: 'Delete' },
-  hideBtn: { ar: 'إخفاء', en: 'Hide' },
-  showBtn: { ar: 'إظهار', en: 'Show' },
-  unavailableTag: { ar: 'غير متاح', en: 'unavailable' },
-  hiddenTag: { ar: 'مخفي عن الزبائن', en: 'hidden from customers' },
-  addItemTitle: { ar: 'إضافة صنف جديد', en: 'Add new item' },
-  editItemTitle: { ar: 'تعديل الصنف', en: 'Edit item' },
-  fillRequiredError: { ar: 'الرجاء تعبئة الاسم والتصنيف والسعر على الأقل.', en: 'Please fill in at least the name, category, and price.' },
-  saveErrorGeneric: { ar: 'حدث خطأ أثناء الحفظ. حاول مرة أخرى.', en: 'An error occurred while saving. Please try again.' },
-  confirmDeleteItem: { ar: 'متأكد تبي تحذف هذا الصنف؟', en: 'Are you sure you want to delete this item?' },
-  noOrdersYet: { ar: 'لا توجد طلبات حالياً.', en: 'No orders right now.' },
-  completedOrdersTitle: { ar: 'الطلبات المكتملة', en: 'Completed orders' },
-  noCompletedOrdersYet: { ar: 'لا توجد طلبات مكتملة بعد.', en: 'No completed orders yet.' },
-  printNowPrompt: { ar: 'هل تريد طباعة الفاتورة؟؟', en: 'Do you want to print the receipt?' },
-  printYesBtn: { ar: 'طباعة', en: 'Print' },
-  printCancelBtn: { ar: 'إلغاء', en: 'Cancel' },
-  ordersLoadError: { ar: 'تعذر تحميل الطلبات.', en: 'Could not load orders.' },
-  statusNew: { ar: 'جديد', en: 'New' },
-  statusPreparing: { ar: 'قيد التحضير', en: 'Preparing' },
-  statusReady: { ar: 'جاهز', en: 'Ready' },
-  startPreparingBtn: { ar: 'ابدأ التحضير', en: 'Start preparing' },
-  markReadyBtn: { ar: 'تم — جاهز', en: 'Done — ready' },
-  tableLabel: { ar: 'طاولة', en: 'Table' },
-  payCash: { ar: '💵 نقداً', en: '💵 Cash' },
-  payTransfer: { ar: '🏦 تحويل بنكي', en: '🏦 Bank transfer' },
-  payCard: { ar: '💳 فيزا / بطاقة', en: '💳 Visa / Card' },
-  paymentMethodLbl: { ar: 'طريقة الدفع', en: 'Payment method' },
-  printReceiptBtn: { ar: 'طباعة الفاتورة', en: 'Print receipt' },
-  viewReceiptBtn: { ar: 'عرض الوصل', en: 'View receipt' },
-  sendWhatsappBtn: { ar: 'واتساب', en: 'WhatsApp' },
-  waInvoiceItemsLabel: { ar: 'الأصناف', en: 'Items' },
-  waInvoiceThankYou: { ar: 'شكراً لطلبك ☕', en: 'Thank you for your order ☕' },
-  tapToOpenPrintPage: { ar: 'اضغط الزر تحت عشان تفتح صفحة الطباعة (بتفتح بمتصفح Safari)', en: 'Tap the button below to open the print page (it opens in Safari)' },
-  openPrintPageBtn: { ar: 'فتح صفحة الطباعة', en: 'Open print page' },
-  receiptTitle: { ar: 'فاتورة', en: 'Receipt' },
-  thankYouMsg: { ar: 'شكراً لزيارتكم ☕', en: 'Thank you for visiting ☕' },
-  paymentOptionsLbl: { ar: 'طرق الدفع المتاحة للعميل', en: 'Payment methods available to customers' },
-  orderTypesLbl: { ar: 'أنواع الطلب المتاحة للعميل', en: 'Order types available to customers' },
-  orderFromTable: { ar: '🍽️ طلب من الطاولة', en: '🍽️ Order from table' },
-  orderFromCar: { ar: '🚗 طلب من السيارة', en: '🚗 Order from car' },
-  orderFromDelivery: { ar: '🛵 طلب خارجي (توصيل)', en: '🛵 External order (delivery)' },
-  deliveryPhoneLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
-  deliveryMapsLbl: { ar: 'رابط موقعك على خرائط جوجل', en: 'Your Google Maps location link' },
-  deliveryMapsPlaceholder: { ar: 'https://maps.google.com/...', en: 'https://maps.google.com/...' },
-  deliveryWilayatLbl: { ar: 'الولاية', en: 'Wilayat' },
-  deliveryAreaLbl: { ar: 'المنطقة', en: 'Area' },
-  deliveryHouseNumberLbl: { ar: 'رقم البيت (اختياري)', en: 'House number (optional)' },
-  deliveryFieldsError: { ar: 'الرجاء تعبئة رقم الواتساب ورابط الموقع والولاية والمنطقة.', en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
-  openMapsBtn: { ar: 'فتح الموقع بالخريطة', en: 'Open location on map' },
-  houseNoShort: { ar: 'بيت', en: 'House' },
-  carNumberLbl: { ar: 'رقم السيارة', en: 'Car number' },
-  carColorLbl: { ar: 'لون السيارة', en: 'Car color' },
-  tableNumberLbl: { ar: 'رقم الطاولة', en: 'Table number' },
-  atLeastOnePaymentError: { ar: 'لازم تفعّل طريقة دفع واحدة على الأقل.', en: 'Please enable at least one payment method.' },
-  bankAccountNameLbl: { ar: 'اسم صاحب الحساب البنكي (بالإنجليزي فقط)', en: 'Bank account holder name (English only)' },
-  bankTransferNumberLbl: { ar: 'رقم التحويل', en: 'Transfer number' },
-  bankNameEnglishOnlyError: { ar: 'اسم صاحب الحساب لازم يكون بالإنجليزي بس (بدون حروف عربية).', en: 'The account holder name must be in English only (no Arabic characters).' },
-  bankDetailsRequiredError: { ar: 'أدخل اسم صاحب الحساب ورقم التحويل عشان تفعّل التحويل البنكي.', en: 'Enter the account holder name and transfer number to enable bank transfer.' },
-  loyaltyEnabledLbl: { ar: 'تفعيل نظام نقاط الولاء', en: 'Enable loyalty points program' },
-  loyaltyThresholdLbl: { ar: 'عدد الطلبات المطلوب للمكافأة', en: 'Orders required for a reward' },
-  loyaltyRewardTextLbl: { ar: 'نص المكافأة', en: 'Reward description' },
-  loyaltyCustomersTitle: { ar: 'نقاط عملاء الولاء', en: 'Loyalty customers' },
-  noLoyaltyCustomersYet: { ar: 'لا يوجد عملاء ولاء بعد.', en: 'No loyalty customers yet.' },
-  pointsWord: { ar: 'نقطة', en: 'points' },
-  resetPointsBtn: { ar: 'إعادة تعيين', en: 'Reset' },
-  confirmResetPoints: { ar: 'متأكد تبي تصفّر نقاط هذا العميل؟ (سوّها بعد ما تعطيه مكافأته)', en: "Reset this customer's points? (Do this after giving them their reward)" },
-  customerHasRewardBadge: { ar: 'هذا العميل عنده مكافأة جاهزة', en: 'This customer has a reward ready' },
-  newRewardOrderTitle: { ar: 'طلب مكافأة! 🎁', en: 'Reward order! 🎁' },
-  newRewardOrderMsg: { ar: 'وصلك طلب من عميل حقق نقاط الولاء — هذا الطلب يستاهل مكافأة مجانية.', en: 'You received an order from a customer who reached their loyalty points — this order deserves a free reward.' },
-  orderCancelledTitle: { ar: 'العميل ألغى الطلب', en: 'Customer cancelled the order' },
-  cancelOrderBtn: { ar: 'إلغاء الطلب', en: 'Cancel order' },
-  confirmStaffCancelOrder: { ar: 'متأكد تريد تلغي هذا الطلب؟', en: 'Are you sure you want to cancel this order?' },
-  yesCancelBtn: { ar: 'نعم، ألغِ الطلب', en: 'Yes, cancel it' },
-  noKeepBtn: { ar: 'تراجع', en: 'No, keep it' },
-  okBtn: { ar: 'حسناً', en: 'OK' },
-  atLeastOneOrderTypeError: { ar: 'لازم تفعّل نوع طلب واحد على الأقل.', en: 'Please enable at least one order type.' },
-  paymentBreakdownTitle: { ar: 'حسب طريقة الدفع', en: 'By payment method' },
-  staffBreakdownTitle: { ar: 'حسب البائع', en: 'By staff member' },
-  shopOwnerLabel: { ar: 'صاحب الكوفي', en: 'Shop owner' },
-  soldByLabel: { ar: 'بواسطة', en: 'By' },
-  giftPaidLabel: { ar: 'مدفوعة', en: 'Paid' },
-  noCounterSalesYet: { ar: 'لا توجد مبيعات كاونتر بهذي الفترة.', en: 'No counter sales in this period.' },
-  addOneItemError: { ar: 'أضف صنف واحد على الأقل.', en: 'Add at least one item.' },
-  orderSendErrorGeneric: { ar: 'حدث خطأ أثناء إرسال الطلب.', en: 'An error occurred while sending the order.' },
-  counterCustomer: { ar: 'عميل الكاونتر', en: 'Counter customer' },
-  newCounterOrderTitle: { ar: 'طلب جديد من الكاونتر', en: 'New counter order' },
-  customerNameOptional: { ar: 'اسم العميل (اختياري)', en: 'Customer name (optional)' },
-  addFirstItemsHint: { ar: 'أضف أصناف بالقائمة أولاً من تبويب "لوحة التحكم".', en: 'Add items to your menu first from the Dashboard tab.' },
-  lowStockWarning: { ar: '⚠️ كمية منخفضة', en: '⚠️ Low stock' },
-  outOfStockLabel: { ar: '🚫 نفذت الكمية', en: '🚫 Out of stock' },
-  outOfStockError: { ar: 'نفذت الكمية من', en: 'Out of stock' },
-  sendingOrderLoading: { ar: '⏳ جاري الإرسال...', en: '⏳ Sending...' },
-  savingInventory: { ar: 'جاري الحفظ...', en: 'Saving...' },
-  unlimitedPlaceholder: { ar: 'غير محدود', en: 'Unlimited' },
-  noSalesPeriod: { ar: 'لا توجد مبيعات بهذي الفترة.', en: 'No sales in this period.' },
-  salesUnit: { ar: 'مبيعات', en: 'sold' },
-  qrLibraryError: { ar: 'مكتبة QR ما تحمّلت من الإنترنت', en: 'QR library failed to load' },
-  qrGenerationFailed: { ar: 'تعذر توليد الباركود', en: 'Could not generate QR code' },
-  logoUploading: { ar: 'جاري تجهيز ورفع الشعار...', en: 'Preparing and uploading logo...' },
-  logoUploaded: { ar: 'تم رفع الشعار ✓ — لا تنسى تضغط "حفظ التغييرات"', en: 'Logo uploaded ✓ — don\'t forget to click "Save changes"' },
-  logoUploadFailed: { ar: 'فشل رفع الشعار، حاول مرة أخرى.', en: 'Logo upload failed, please try again.' },
-  coverUploading: { ar: 'جاري تجهيز ورفع صورة الغلاف...', en: 'Preparing and uploading cover photo...' },
-  coverUploaded: { ar: 'تم رفع الغلاف ✓ — لا تنسى تضغط "حفظ التغييرات"', en: 'Cover uploaded ✓ — don\'t forget to click "Save changes"' },
-  coverUploadFailed: { ar: 'فشل رفع الغلاف، حاول مرة أخرى.', en: 'Cover upload failed, please try again.' },
-  itemImageUploading: { ar: 'جاري تجهيز ورفع الصورة...', en: 'Preparing and uploading photo...' },
-  itemImageUploaded: { ar: 'تم رفع الصورة ✓', en: 'Photo uploaded ✓' },
-  itemImageUploadFailed: { ar: 'فشل رفع الصورة، حاول مرة أخرى.', en: 'Photo upload failed, please try again.' },
-  shopNameRequiredError: { ar: 'اسم الكوفي مطلوب.', en: 'Shop name is required.' },
-  savedSuccess: { ar: 'تم الحفظ ✓', en: 'Saved ✓' },
-  currency: { ar: 'ر.ع', en: 'OMR' },
-  colNew: { ar: 'جديد', en: 'New' },
-  colPreparing: { ar: 'قيد التحضير', en: 'Preparing' },
-  justNow: { ar: 'الآن', en: 'just now' },
-  minutesAgo: { ar: 'دقيقة مضت', en: 'min ago' },
-  downloadTentBtn: { ar: 'تحميل تصميم الطاولة', en: 'Download table tent' },
-  shareLinkTitle: { ar: 'رابط قائمتك', en: 'Your menu link' },
-  shareLinkHint: { ar: 'انسخ هذا الرابط وضيفه ببايو انستقرام، تويتر، أو أي حساب سوشيال ميديا', en: 'Copy this link and add it to your Instagram bio, Twitter, or any social account' },
-  copyLinkBtn: { ar: '📋 نسخ الرابط', en: '📋 Copy link' },
-  copiedMsg: { ar: 'تم نسخ الرابط ✓', en: 'Link copied ✓' },
-  copyFailedMsg: { ar: 'تعذر النسخ، انسخه يدوياً من الأعلى', en: 'Could not copy — please copy it manually above' },
-  scanAndOrder: { ar: 'امسح واطلب', en: 'Scan & Order' },
-  exportTitle: { ar: 'تصدير تقرير Excel', en: 'Export Excel report' },
-  exportLangLbl: { ar: 'لغة الملف', en: 'File language' },
-  fromDateLbl: { ar: 'من تاريخ', en: 'From date' },
-  toDateLbl: { ar: 'إلى تاريخ', en: 'To date' },
-  exportBtn: { ar: '📥 تصدير Excel', en: '📥 Export Excel' },
-  exportDatesRequired: { ar: 'اختر تاريخ البداية والنهاية.', en: 'Please choose both a start and end date.' },
-  exportDateOrderError: { ar: 'تاريخ البداية لازم يكون قبل تاريخ النهاية.', en: 'Start date must be before end date.' },
-  exportLibError: { ar: 'مكتبة Excel ما تحمّلت.', en: 'Excel library failed to load.' },
-  exportPreparing: { ar: 'جاري تجهيز الملف...', en: 'Preparing the file...' },
-  exportDone: { ar: 'تم تحميل الملف ✓', en: 'File downloaded ✓' },
-  exportGenericError: { ar: 'حدث خطأ أثناء التصدير', en: 'An error occurred while exporting' },
-  hoursLbl: { ar: 'ساعات العمل', en: 'Opening hours' },
-  subReservations: { ar: 'الحجوزات', en: 'Reservations' },
-  subGifts: { ar: 'الهدايا', en: 'Gifts' },
-  giftsIntro: { ar: 'الهدايا اللي اشتراها عملاء لأصدقائهم وما تسلّمت بعد.', en: "Gifts customers bought for friends that haven't been picked up yet." },
-  noPendingGifts: { ar: 'لا توجد هدايا حالياً.', en: 'No pending gifts right now.' },
-  deliverGiftBtn: { ar: 'تسليم الهدية', en: 'Deliver gift' },
-  giftWelcomeLine1: { ar: 'مرحباً..', en: 'Hello..' },
-  giftWelcomeLine2: { ar: 'صديق أحب يهديك هدية', en: 'A friend wanted to gift you something' },
-  giftWelcomeLine3: { ar: 'تفضل استلمها', en: 'Please come pick it up from' },
-  giftWelcomeLine4: { ar: 'بامكانك تستلمها بأي وقت يناسبك', en: 'You can pick it up whenever suits you' },
-  addRoomTitle: { ar: 'إضافة قاعة جديدة', en: 'Add new room' },
-  editRoomTitle: { ar: 'تعديل القاعة', en: 'Edit room' },
-  roomNameLbl: { ar: 'اسم القاعة (عربي)', en: 'Room name (Arabic)' },
-  roomNameEnLbl: { ar: 'اسم القاعة (إنجليزي)', en: 'Room name (English)' },
-  roomCapacityLbl: { ar: 'السعة (عدد الأشخاص)', en: 'Capacity (people)' },
-  roomDescLbl: { ar: 'وصف مختصر (اختياري)', en: 'Short description (optional)' },
-  saveRoomBtn: { ar: 'حفظ القاعة', en: 'Save room' },
-  roomsListTitle: { ar: 'القاعات', en: 'Rooms' },
-  reservationsListTitle: { ar: 'الحجوزات الواردة', en: 'Incoming reservations' },
-  noRoomsYet: { ar: 'لا توجد قاعات بعد. أضف أول قاعة بالأعلى.', en: 'No rooms yet. Add your first one above.' },
-  noReservationsYet: { ar: 'لا توجد حجوزات حالياً.', en: 'No reservations right now.' },
-  capacityWord: { ar: 'السعة', en: 'Capacity' },
-  guestsWord: { ar: 'أشخاص', en: 'guests' },
-  roomNameRequired: { ar: 'اسم القاعة مطلوب.', en: 'Room name is required.' },
-  confirmDeleteRoom: { ar: 'متأكد تبي تحذف هذي القاعة؟', en: 'Are you sure you want to delete this room?' },
-  cancelReservationBtn: { ar: 'إلغاء الحجز', en: 'Cancel reservation' },
-  confirmCancelReservation: { ar: 'متأكد تبي تلغي هذا الحجز؟', en: 'Are you sure you want to cancel this reservation?' },
-  closedLbl: { ar: 'مغلق', en: 'Closed' },
-  addSecondPeriod: { ar: 'إضافة فترة ثانية', en: 'Add second period' },
-  itemSuggestedLbl: { ar: 'اقترحه كإضافة بالسلة', en: 'Suggest as a cart add-on' },
-  avgRatingLbl: { ar: 'متوسط التقييم', en: 'Average rating' }
+  total: { fr: "Total", en: 'Total' },
+  redeemingGift: { fr: "Remise en cours...", en: 'Delivering...' },
+  giftOrderNote: { fr: "Cadeau pour", en: 'Gift to' },
+  giftAlreadyUsed: { fr: "Ce cadeau a déjà été remis.", en: 'This gift has already been delivered.' },
+  verifyEmailTitle: { fr: "Confirmez votre courriel", en: 'Verify your email' },
+  verifyEmailSentPre: { fr: "Nous avons envoyé un lien de confirmation à", en: 'We sent a verification link to' },
+  verifyEmailSentPost: { fr: "Cliquez sur le lien, puis actualisez cette page.", en: 'Click the link, then refresh this page.' },
+  verifySpamHint: { fr: "📩 Vous ne trouvez pas le courriel ? Vérifiez vos courriels indésirables (spam).", en: "📩 Can't find the email? Check your spam / junk folder." },
+  verifiedReloadBtn: { fr: "C'est fait — actualiser la page", en: 'Done — refresh the page' },
+  resendLinkBtn: { fr: "Renvoyer le lien", en: 'Resend the link' },
+  linkResentMsg: { fr: "Lien renvoyé ✓", en: 'Link sent again ✓' },
+  accountSuspendedMsg: { fr: "⚠️ Votre compte est suspendu — votre menu n'est pas visible pour les clients.", en: '⚠️ Your account is suspended — your menu is not visible to customers.' },
+  suspensionReasonLbl: { fr: "Motif", en: 'Reason' },
+  subExpiredPre: { fr: "⚠️ Votre abonnement a expiré le", en: '⚠️ Your subscription expired on' },
+  subExpiredPost: { fr: "— votre menu n'est pas visible pour les clients. Contactez-nous pour le renouveler.", en: '— your menu is not visible to customers. Contact us to renew.' },
+  subEndsInPre: { fr: "⏰ Votre abonnement expire", en: '⏰ Your subscription ends' },
+  subEndsToday: { fr: "aujourd'hui", en: 'today' },
+  subEndsOneDay: { fr: "dans 1 jour", en: 'in 1 day' },
+  subEndsDaysPre: { fr: "dans", en: 'in' },
+  subEndsDaysWord: { fr: "jours", en: 'days' },
+  contactToRenew: { fr: "Contactez-nous pour le renouveler.", en: 'Contact us to renew.' },
+  sendOrderBtn: { fr: "📤 Envoyer la commande", en: '📤 Send order' },
+  pageTitle: { fr: "Tableau de bord", en: 'Dashboard' },
+  checkingLogin: { fr: "Vérification de la connexion...", en: 'Checking sign-in...' },
+  navDashboard: { fr: "Tableau de bord", en: 'Dashboard' },
+  navPos: { fr: "Caisse", en: 'POS' },
+  navInventory: { fr: "Inventaire", en: 'Inventory' },
+  navSales: { fr: "Ventes", en: 'Sales' },
+  navAccount: { fr: "Compte", en: 'Account' },
+  subQr: { fr: "Code QR", en: 'QR Code' },
+  subAdd: { fr: "Ajouter", en: 'Add Item' },
+  subList: { fr: "Articles", en: 'Items' },
+  qrTitle: { fr: "Le code QR de votre menu", en: 'Your menu QR code' },
+  downloadQr: { fr: "Télécharger le code QR", en: 'Download QR code' },
+  itemNameAr: { fr: "Nom de l'article (français)", en: "Item name (French)" },
+  itemNameEnLbl: { fr: "Nom de l'article (anglais)", en: 'Item name (English)' },
+  itemCatAr: { fr: "Catégorie (français)", en: "Category (French)" },
+  itemCatEn: { fr: "Catégorie (anglais)", en: 'Category (English)' },
+  itemDescLbl: { fr: "Description (facultatif)", en: 'Description (optional)' },
+  itemPriceLbl: { fr: "Prix (OMR)", en: 'Price (OMR)' },
+  itemImageLbl: { fr: "Photo de l'article", en: 'Item photo' },
+  itemAvailableLbl: { fr: "Disponible actuellement", en: 'Currently available' },
+  saveItemBtn: { fr: "Enregistrer l'article", en: 'Save item' },
+  cancelBtn: { fr: "Annuler", en: 'Cancel' },
+  newCounterOrderBtn: { fr: "+ Nouvelle commande (comptoir)", en: '+ New order (counter)' },
+  incomingOrdersTitle: { fr: "Commandes entrantes", en: 'Incoming orders' },
+  inventoryIntro: { fr: "Indiquez une quantité en stock pour les articles à suivre. Laissez vide pour illimité.", en: 'Set a stock count for any item you want to track. Leave it blank for unlimited.' },
+  rangeDay: { fr: "Aujourd'hui", en: 'Today' },
+  rangeWeek: { fr: "Cette semaine", en: 'This week' },
+  rangeMonth: { fr: "Ce mois-ci", en: 'This month' },
+  totalSalesLbl: { fr: "Ventes totales (OMR)", en: 'Total sales (OMR)' },
+  orderCountLbl: { fr: "Nombre de commandes", en: 'Number of orders' },
+  topSellingTitle: { fr: "Meilleures ventes", en: 'Top selling' },
+  shopInfoTitle: { fr: "Infos du café", en: 'Shop info' },
+  accSubInfo: { fr: "Infos du café", en: 'Shop info' },
+  accSubPayment: { fr: "Paiement", en: 'Payment' },
+  accSubLoyalty: { fr: "Fidélité", en: 'Loyalty' },
+  accSubOrderTypes: { fr: "Types de commande", en: 'Order types' },
+  accSubStaff: { fr: "Personnel", en: 'Staff' },
+  accSubSession: { fr: "Session", en: 'Session' },
+  logoLbl: { fr: "Logo du café", en: 'Shop logo' },
+  coverLbl: { fr: "Photo de couverture", en: 'Cover photo' },
+  shopNameArLbl: { fr: "Nom du café (français)", en: "Shop name (French)" },
+  shopNameEnLbl: { fr: "Nom du café (anglais)", en: 'Shop name (English)' },
+  taglineArLbl: { fr: "Courte accroche (français)", en: "Short tagline (French)" },
+  taglineEnLbl: { fr: "Courte accroche (anglais)", en: 'Short tagline (English)' },
+  locationLbl: { fr: "Emplacement", en: 'Location' },
+  phoneLbl: { fr: "Numéro de téléphone", en: 'Phone number' },
+  whatsappLbl: { fr: "Numéro WhatsApp", en: 'WhatsApp number' },
+  locationLinkLbl: { fr: "Lien de l'emplacement (Google Maps)", en: 'Location link (Google Maps)' },
+  instagramLinkLbl: { fr: "Lien Instagram", en: 'Instagram link' },
+  emailLbl: { fr: "Courriel", en: 'Email' },
+  colorLbl: { fr: "Couleur principale", en: 'Accent color' },
+  prepTimeLbl: { fr: "Temps de préparation estimé (minutes)", en: 'Estimated prep time (minutes)' },
+  showRatingLbl: { fr: "Afficher ma note moyenne aux clients sur le menu", en: 'Show my average rating to customers on the menu' },
+  saveChangesBtn: { fr: "Enregistrer les modifications", en: 'Save changes' },
+  logoutBtn: { fr: "Se déconnecter", en: 'Log out' },
+  pressBackAgainToExit: { fr: "Appuyez de nouveau sur retour pour quitter", en: 'Press back again to exit' },
+  loggedInAs: { fr: "Connecté en tant que", en: 'Logged in as' },
+  employeesTitle: { fr: "Personnel", en: 'Staff' },
+  empNameLbl: { fr: "Nom de l'employé", en: "Employee's name" },
+  empEmailLbl: { fr: "Courriel", en: 'Email' },
+  empPasswordLbl: { fr: "Mot de passe (6 caractères minimum)", en: 'Password (6 characters minimum)' },
+  empPermissionsLbl: { fr: "Autorisations accordées", en: 'Allowed permissions' },
+  posPrintNote: { fr: "L'autorisation « Caisse » inclut automatiquement l'impression des reçus.", en: 'The "POS" permission automatically includes the ability to print receipts.' },
+  addEmployeeBtn: { fr: "Ajouter l'employé", en: 'Add employee' },
+  currentEmployeesTitle: { fr: "Personnel actuel", en: 'Current staff' },
+  noEmployeesYet: { fr: "Aucun employé ajouté pour le moment.", en: 'No staff added yet.' },
+  noPermissionsShort: { fr: "Aucune autorisation", en: 'No permissions' },
+  empInvalidFields: { fr: "Entrez un nom et une adresse courriel valides.", en: 'Enter a valid name and email address.' },
+  empPinTooShort: { fr: "Le mot de passe doit contenir au moins 6 caractères.", en: 'Password must be at least 6 characters.' },
+  atLeastOnePermissionError: { fr: "Activez au moins une autorisation pour cet employé.", en: 'Enable at least one permission for this employee.' },
+  empPhoneTaken: { fr: "Ce courriel est déjà utilisé par un autre employé.", en: 'This email is already used by another employee.' },
+  pinLockedNote: { fr: "(ne peut pas être modifié ici)", en: '(cannot be changed here)' },
+  confirmDeleteEmployee: { fr: "Voulez-vous vraiment retirer cet employé ? Il perdra l'accès immédiatement.", en: 'Are you sure you want to remove this employee? They will lose access immediately.' },
+  noPermissionsMsg: { fr: "Aucune autorisation ne vous est accordée. Veuillez contacter le propriétaire du café.", en: "You don't have any permissions enabled. Please contact the shop owner." },
+  loadingGeneric: { fr: "Chargement...", en: 'Loading...' },
+  noItemsYet: { fr: "Aucun article pour le moment. Ajoutez votre premier article ci-dessus.", en: 'No items yet. Add your first one above.' },
+  categoryManagerTitle: { fr: "Gérer les catégories", en: 'Manage categories' },
+  noCategoriesYet: { fr: "Aucune catégorie pour le moment.", en: 'No categories yet.' },
+  itemsInCategoryWord: { fr: "articles", en: 'items' },
+  renameCategoryTitle: { fr: "Modifier la catégorie", en: 'Edit category' },
+  confirmDeleteCategory: { fr: "Supprimer cette catégorie ? Ses articles deviendront sans catégorie, mais ne seront PAS supprimés.", en: 'Delete this category? Its items will become uncategorized, but will NOT be deleted.' },
+  uncategorizedLabel: { fr: "Sans catégorie", en: 'Uncategorized' },
+  editBtn: { fr: "Modifier", en: 'Edit' },
+  deleteBtn: { fr: "Supprimer", en: 'Delete' },
+  hideBtn: { fr: "Masquer", en: 'Hide' },
+  showBtn: { fr: "Afficher", en: 'Show' },
+  unavailableTag: { fr: "non disponible", en: 'unavailable' },
+  hiddenTag: { fr: "masqué aux clients", en: 'hidden from customers' },
+  addItemTitle: { fr: "Ajouter un nouvel article", en: 'Add new item' },
+  editItemTitle: { fr: "Modifier l'article", en: 'Edit item' },
+  fillRequiredError: { fr: "Veuillez remplir au moins le nom, la catégorie et le prix.", en: 'Please fill in at least the name, category, and price.' },
+  saveErrorGeneric: { fr: "Une erreur s'est produite lors de l'enregistrement. Veuillez réessayer.", en: 'An error occurred while saving. Please try again.' },
+  confirmDeleteItem: { fr: "Voulez-vous vraiment supprimer cet article ?", en: 'Are you sure you want to delete this item?' },
+  noOrdersYet: { fr: "Aucune commande pour le moment.", en: 'No orders right now.' },
+  completedOrdersTitle: { fr: "Commandes terminées", en: 'Completed orders' },
+  noCompletedOrdersYet: { fr: "Aucune commande terminée pour le moment.", en: 'No completed orders yet.' },
+  printNowPrompt: { fr: "Voulez-vous imprimer le reçu ?", en: 'Do you want to print the receipt?' },
+  printYesBtn: { fr: "Imprimer", en: 'Print' },
+  printCancelBtn: { fr: "Annuler", en: 'Cancel' },
+  ordersLoadError: { fr: "Impossible de charger les commandes.", en: 'Could not load orders.' },
+  statusNew: { fr: "Nouvelle", en: 'New' },
+  statusPreparing: { fr: "En préparation", en: 'Preparing' },
+  statusReady: { fr: "Prête", en: 'Ready' },
+  startPreparingBtn: { fr: "Commencer la préparation", en: 'Start preparing' },
+  markReadyBtn: { fr: "Terminé — prête", en: 'Done — ready' },
+  tableLabel: { fr: "Table", en: 'Table' },
+  payCash: { fr: "💵 Comptant", en: '💵 Cash' },
+  payTransfer: { fr: "🏦 Virement bancaire", en: '🏦 Bank transfer' },
+  payCard: { fr: "💳 Carte", en: '💳 Visa / Card' },
+  paymentMethodLbl: { fr: "Mode de paiement", en: 'Payment method' },
+  printReceiptBtn: { fr: "Imprimer le reçu", en: 'Print receipt' },
+  viewReceiptBtn: { fr: "Voir le reçu", en: 'View receipt' },
+  sendWhatsappBtn: { fr: "WhatsApp", en: 'WhatsApp' },
+  waInvoiceItemsLabel: { fr: "Articles", en: 'Items' },
+  waInvoiceThankYou: { fr: "Merci pour votre commande ☕", en: 'Thank you for your order ☕' },
+  tapToOpenPrintPage: { fr: "Touchez le bouton ci-dessous pour ouvrir la page d'impression (elle s'ouvre dans Safari)", en: 'Tap the button below to open the print page (it opens in Safari)' },
+  openPrintPageBtn: { fr: "Ouvrir la page d'impression", en: 'Open print page' },
+  receiptTitle: { fr: "Reçu", en: 'Receipt' },
+  thankYouMsg: { fr: "Merci de votre visite ☕", en: 'Thank you for visiting ☕' },
+  paymentOptionsLbl: { fr: "Modes de paiement offerts aux clients", en: 'Payment methods available to customers' },
+  orderTypesLbl: { fr: "Types de commande offerts aux clients", en: 'Order types available to customers' },
+  orderFromTable: { fr: "🍽️ Commander à la table", en: '🍽️ Order from table' },
+  orderFromCar: { fr: "🚗 Commander de la voiture", en: '🚗 Order from car' },
+  orderFromDelivery: { fr: "🛵 Livraison", en: '🛵 External order (delivery)' },
+  deliveryPhoneLbl: { fr: "Numéro WhatsApp", en: 'WhatsApp number' },
+  deliveryMapsLbl: { fr: "Lien de position Google Maps", en: 'Your Google Maps location link' },
+  deliveryMapsPlaceholder: { fr: "https://maps.google.com/...", en: 'https://maps.google.com/...' },
+  deliveryWilayatLbl: { fr: "Ville", en: 'Wilayat' },
+  deliveryAreaLbl: { fr: "Quartier", en: 'Area' },
+  deliveryHouseNumberLbl: { fr: "Numéro civique (facultatif)", en: 'House number (optional)' },
+  deliveryFieldsError: { fr: "Veuillez remplir le numéro WhatsApp, le lien de position, la ville et le quartier.", en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
+  openMapsBtn: { fr: "Ouvrir la position sur la carte", en: 'Open location on map' },
+  houseNoShort: { fr: "N°", en: 'House' },
+  carNumberLbl: { fr: "Numéro de plaque", en: 'Car number' },
+  carColorLbl: { fr: "Couleur de la voiture", en: 'Car color' },
+  tableNumberLbl: { fr: "Numéro de table", en: 'Table number' },
+  atLeastOnePaymentError: { fr: "Veuillez activer au moins un mode de paiement.", en: 'Please enable at least one payment method.' },
+  bankAccountNameLbl: { fr: "Nom du titulaire du compte (anglais seulement)", en: 'Bank account holder name (English only)' },
+  bankTransferNumberLbl: { fr: "Numéro de virement", en: 'Transfer number' },
+  bankNameEnglishOnlyError: { fr: "Le nom du titulaire doit être en anglais seulement (aucun caractère arabe).", en: 'The account holder name must be in English only (no Arabic characters).' },
+  bankDetailsRequiredError: { fr: "Entrez le nom du titulaire et le numéro de virement pour activer le virement bancaire.", en: 'Enter the account holder name and transfer number to enable bank transfer.' },
+  loyaltyEnabledLbl: { fr: "Activer le programme de points fidélité", en: 'Enable loyalty points program' },
+  loyaltyThresholdLbl: { fr: "Commandes requises pour une récompense", en: 'Orders required for a reward' },
+  loyaltyRewardTextLbl: { fr: "Description de la récompense", en: 'Reward description' },
+  loyaltyCustomersTitle: { fr: "Clients fidèles", en: 'Loyalty customers' },
+  noLoyaltyCustomersYet: { fr: "Aucun client fidèle pour le moment.", en: 'No loyalty customers yet.' },
+  pointsWord: { fr: "points", en: 'points' },
+  resetPointsBtn: { fr: "Réinitialiser", en: 'Reset' },
+  confirmResetPoints: { fr: "Réinitialiser les points de ce client ? (À faire après lui avoir remis sa récompense)", en: "Reset this customer's points? (Do this after giving them their reward)" },
+  customerHasRewardBadge: { fr: "Ce client a une récompense prête", en: 'This customer has a reward ready' },
+  newRewardOrderTitle: { fr: "Commande récompense ! 🎁", en: 'Reward order! 🎁' },
+  newRewardOrderMsg: { fr: "Vous avez reçu la commande d'un client qui a atteint ses points fidélité — cette commande mérite une récompense gratuite.", en: 'You received an order from a customer who reached their loyalty points — this order deserves a free reward.' },
+  orderCancelledTitle: { fr: "Le client a annulé la commande", en: 'Customer cancelled the order' },
+  cancelOrderBtn: { fr: "Annuler la commande", en: 'Cancel order' },
+  confirmStaffCancelOrder: { fr: "Voulez-vous vraiment annuler cette commande ?", en: 'Are you sure you want to cancel this order?' },
+  yesCancelBtn: { fr: "Oui, annuler", en: 'Yes, cancel it' },
+  noKeepBtn: { fr: "Non, garder", en: 'No, keep it' },
+  okBtn: { fr: "OK", en: 'OK' },
+  atLeastOneOrderTypeError: { fr: "Veuillez activer au moins un type de commande.", en: 'Please enable at least one order type.' },
+  paymentBreakdownTitle: { fr: "Par mode de paiement", en: 'By payment method' },
+  staffBreakdownTitle: { fr: "Par employé", en: 'By staff member' },
+  shopOwnerLabel: { fr: "Propriétaire", en: 'Shop owner' },
+  soldByLabel: { fr: "Par", en: 'By' },
+  giftPaidLabel: { fr: "Payée", en: 'Paid' },
+  noCounterSalesYet: { fr: "Aucune vente au comptoir pour cette période.", en: 'No counter sales in this period.' },
+  addOneItemError: { fr: "Ajoutez au moins un article.", en: 'Add at least one item.' },
+  orderSendErrorGeneric: { fr: "Une erreur s'est produite lors de l'envoi de la commande.", en: 'An error occurred while sending the order.' },
+  counterCustomer: { fr: "Client au comptoir", en: 'Counter customer' },
+  newCounterOrderTitle: { fr: "Nouvelle commande au comptoir", en: 'New counter order' },
+  customerNameOptional: { fr: "Nom du client (facultatif)", en: 'Customer name (optional)' },
+  addFirstItemsHint: { fr: "Ajoutez d'abord des articles à votre menu depuis l'onglet Tableau de bord.", en: 'Add items to your menu first from the Dashboard tab.' },
+  lowStockWarning: { fr: "⚠️ Stock faible", en: '⚠️ Low stock' },
+  outOfStockLabel: { fr: "🚫 Rupture de stock", en: '🚫 Out of stock' },
+  outOfStockError: { fr: "Rupture de stock", en: 'Out of stock' },
+  sendingOrderLoading: { fr: "⏳ Envoi en cours...", en: '⏳ Sending...' },
+  savingInventory: { fr: "Enregistrement...", en: 'Saving...' },
+  unlimitedPlaceholder: { fr: "Illimité", en: 'Unlimited' },
+  noSalesPeriod: { fr: "Aucune vente pour cette période.", en: 'No sales in this period.' },
+  salesUnit: { fr: "vendus", en: 'sold' },
+  qrLibraryError: { fr: "La bibliothèque QR n'a pas pu se charger", en: 'QR library failed to load' },
+  qrGenerationFailed: { fr: "Impossible de générer le code QR", en: 'Could not generate QR code' },
+  logoUploading: { fr: "Préparation et téléversement du logo...", en: 'Preparing and uploading logo...' },
+  logoUploaded: { fr: "Logo téléversé ✓ — n'oubliez pas de cliquer sur « Enregistrer les modifications »", en: 'Logo uploaded ✓ — don\'t forget to click "Save changes"' },
+  logoUploadFailed: { fr: "Échec du téléversement du logo, veuillez réessayer.", en: 'Logo upload failed, please try again.' },
+  coverUploading: { fr: "Préparation et téléversement de la couverture...", en: 'Preparing and uploading cover photo...' },
+  coverUploaded: { fr: "Couverture téléversée ✓ — n'oubliez pas de cliquer sur « Enregistrer les modifications »", en: 'Cover uploaded ✓ — don\'t forget to click "Save changes"' },
+  coverUploadFailed: { fr: "Échec du téléversement de la couverture, veuillez réessayer.", en: 'Cover upload failed, please try again.' },
+  itemImageUploading: { fr: "Préparation et téléversement de la photo...", en: 'Preparing and uploading photo...' },
+  itemImageUploaded: { fr: "Photo téléversée ✓", en: 'Photo uploaded ✓' },
+  itemImageUploadFailed: { fr: "Échec du téléversement de la photo, veuillez réessayer.", en: 'Photo upload failed, please try again.' },
+  shopNameRequiredError: { fr: "Le nom du café est obligatoire.", en: 'Shop name is required.' },
+  savedSuccess: { fr: "Enregistré ✓", en: 'Saved ✓' },
+  currency: { fr: "OMR", en: 'OMR' },
+  colNew: { fr: "Nouvelles", en: 'New' },
+  colPreparing: { fr: "En préparation", en: 'Preparing' },
+  justNow: { fr: "à l'instant", en: 'just now' },
+  minutesAgo: { fr: "min", en: 'min ago' },
+  downloadTentBtn: { fr: "Télécharger le chevalet de table", en: 'Download table tent' },
+  shareLinkTitle: { fr: "Le lien de votre menu", en: 'Your menu link' },
+  shareLinkHint: { fr: "Copiez ce lien et ajoutez-le à votre bio Instagram, Facebook ou tout autre réseau social", en: 'Copy this link and add it to your Instagram bio, Twitter, or any social account' },
+  copyLinkBtn: { fr: "📋 Copier le lien", en: '📋 Copy link' },
+  copiedMsg: { fr: "Lien copié ✓", en: 'Link copied ✓' },
+  copyFailedMsg: { fr: "Impossible de copier — veuillez le copier manuellement ci-dessus", en: 'Could not copy — please copy it manually above' },
+  scanAndOrder: { fr: "Scannez et commandez", en: 'Scan & Order' },
+  exportTitle: { fr: "Exporter un rapport Excel", en: 'Export Excel report' },
+  exportLangLbl: { fr: "Langue du fichier", en: 'File language' },
+  fromDateLbl: { fr: "Du", en: 'From date' },
+  toDateLbl: { fr: "Au", en: 'To date' },
+  exportBtn: { fr: "📥 Exporter Excel", en: '📥 Export Excel' },
+  exportDatesRequired: { fr: "Veuillez choisir une date de début et une date de fin.", en: 'Please choose both a start and end date.' },
+  exportDateOrderError: { fr: "La date de début doit précéder la date de fin.", en: 'Start date must be before end date.' },
+  exportLibError: { fr: "La bibliothèque Excel n'a pas pu se charger.", en: 'Excel library failed to load.' },
+  exportPreparing: { fr: "Préparation du fichier...", en: 'Preparing the file...' },
+  exportDone: { fr: "Fichier téléchargé ✓", en: 'File downloaded ✓' },
+  exportGenericError: { fr: "Une erreur s'est produite lors de l'exportation", en: 'An error occurred while exporting' },
+  hoursLbl: { fr: "Heures d'ouverture", en: 'Opening hours' },
+  subReservations: { fr: "Réservations", en: 'Reservations' },
+  subGifts: { fr: "Cadeaux", en: 'Gifts' },
+  giftsIntro: { fr: "Cadeaux achetés par des clients pour leurs amis et pas encore récupérés.", en: "Gifts customers bought for friends that haven't been picked up yet." },
+  noPendingGifts: { fr: "Aucun cadeau en attente pour le moment.", en: 'No pending gifts right now.' },
+  deliverGiftBtn: { fr: "Remettre le cadeau", en: 'Deliver gift' },
+  giftWelcomeLine1: { fr: "Bonjour..", en: 'Hello..' },
+  giftWelcomeLine2: { fr: "Un ami a voulu vous offrir un cadeau", en: 'A friend wanted to gift you something' },
+  giftWelcomeLine3: { fr: "Venez le récupérer chez", en: 'Please come pick it up from' },
+  giftWelcomeLine4: { fr: "Vous pouvez le récupérer quand bon vous semble", en: 'You can pick it up whenever suits you' },
+  addRoomTitle: { fr: "Ajouter une salle", en: 'Add new room' },
+  editRoomTitle: { fr: "Modifier la salle", en: 'Edit room' },
+  roomNameLbl: { fr: "Nom de la salle (français)", en: "Room name (French)" },
+  roomNameEnLbl: { fr: "Nom de la salle (anglais)", en: 'Room name (English)' },
+  roomCapacityLbl: { fr: "Capacité (personnes)", en: 'Capacity (people)' },
+  roomDescLbl: { fr: "Courte description (facultatif)", en: 'Short description (optional)' },
+  saveRoomBtn: { fr: "Enregistrer la salle", en: 'Save room' },
+  roomsListTitle: { fr: "Salles", en: 'Rooms' },
+  reservationsListTitle: { fr: "Réservations entrantes", en: 'Incoming reservations' },
+  noRoomsYet: { fr: "Aucune salle pour le moment. Ajoutez votre première salle ci-dessus.", en: 'No rooms yet. Add your first one above.' },
+  noReservationsYet: { fr: "Aucune réservation pour le moment.", en: 'No reservations right now.' },
+  capacityWord: { fr: "Capacité", en: 'Capacity' },
+  guestsWord: { fr: "personnes", en: 'guests' },
+  roomNameRequired: { fr: "Le nom de la salle est obligatoire.", en: 'Room name is required.' },
+  confirmDeleteRoom: { fr: "Voulez-vous vraiment supprimer cette salle ?", en: 'Are you sure you want to delete this room?' },
+  cancelReservationBtn: { fr: "Annuler la réservation", en: 'Cancel reservation' },
+  confirmCancelReservation: { fr: "Voulez-vous vraiment annuler cette réservation ?", en: 'Are you sure you want to cancel this reservation?' },
+  closedLbl: { fr: "Fermé", en: 'Closed' },
+  addSecondPeriod: { fr: "Ajouter une deuxième plage", en: 'Add second period' },
+  itemSuggestedLbl: { fr: "Suggérer comme ajout au panier", en: 'Suggest as a cart add-on' },
+  avgRatingLbl: { fr: "Note moyenne", en: 'Average rating' }
 };
 
 function dt(key) {
@@ -1356,21 +1376,21 @@ function dt(key) {
 // English) — translates common color words so staff always understand it
 // regardless of which language their dashboard is set to. =====
 const carColorDict = [
-  ['أحمر', 'Red'], ['احمر', 'Red'],
-  ['أزرق', 'Blue'], ['ازرق', 'Blue'],
-  ['أبيض', 'White'], ['ابيض', 'White'],
-  ['أسود', 'Black'], ['اسود', 'Black'],
-  ['رمادي', 'Gray'], ['رصاصي', 'Gray'],
-  ['أخضر', 'Green'], ['اخضر', 'Green'],
-  ['أصفر', 'Yellow'], ['اصفر', 'Yellow'],
-  ['بني', 'Brown'],
-  ['فضي', 'Silver'],
-  ['ذهبي', 'Gold'],
-  ['بنفسجي', 'Purple'],
-  ['برتقالي', 'Orange'],
-  ['وردي', 'Pink'], ['زهري', 'Pink'],
-  ['كحلي', 'Navy Blue'],
-  ['بيج', 'Beige']
+  ['rouge', 'Red'],
+  ['bleu marine', 'Navy Blue'], ['marine', 'Navy Blue'],
+  ['bleu', 'Blue'],
+  ['blanche', 'White'], ['blanc', 'White'],
+  ['noire', 'Black'], ['noir', 'Black'],
+  ['grise', 'Gray'], ['gris', 'Gray'],
+  ['verte', 'Green'], ['vert', 'Green'],
+  ['jaune', 'Yellow'],
+  ['orange', 'Orange'],
+  ['brune', 'Brown'], ['brun', 'Brown'], ['marron', 'Brown'],
+  ['argent', 'Silver'],
+  ['doré', 'Gold'], ['dorée', 'Gold'],
+  ['violet', 'Purple'], ['mauve', 'Purple'],
+  ['rose', 'Pink'],
+  ['beige', 'Beige']
 ];
 
 function translateCarColor(text) {
@@ -1378,7 +1398,8 @@ function translateCarColor(text) {
   const trimmed = text.trim();
 
   if (dashLang === 'en') {
-    const hit = carColorDict.find(([ar]) => trimmed === ar || trimmed.includes(ar));
+    const low = trimmed.toLowerCase();
+    const hit = carColorDict.find(([fr]) => low === fr || low.includes(fr));
     return hit ? hit[1] : text;
   } else {
     const hit = carColorDict.find(([, en]) => trimmed.toLowerCase() === en.toLowerCase());
@@ -1391,15 +1412,15 @@ function applyDashLang() {
     const key = el.getAttribute('data-i18n');
     el.textContent = dt(key);
   });
-  document.getElementById('dashLangToggle').textContent = dashLang === 'ar' ? 'EN' : 'عربي';
-  document.documentElement.dir = dashLang === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('dashLangToggle').textContent = dashLang === 'fr' ? 'EN' : 'FR';
+  document.documentElement.dir = 'ltr';
   if (currentUserEmail) {
     document.getElementById('loggedInAsText').textContent = `${dt('loggedInAs')}: ${currentUserEmail}`;
   }
 }
 
 function toggleDashLang() {
-  dashLang = dashLang === 'ar' ? 'en' : 'ar';
+  dashLang = dashLang === 'fr' ? 'en' : 'fr';
   localStorage.setItem('dashLang', dashLang);
   applyDashLang();
 
@@ -1458,7 +1479,7 @@ function resizeImage(file, maxDimension = 900, quality = 0.82) {
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
 
       canvas.toBlob(
-        (blob) => blob ? resolve(blob) : reject(new Error('فشل تجهيز الصورة')),
+        (blob) => blob ? resolve(blob) : reject(new Error('Image processing failed')),
         'image/jpeg',
         quality
       );
@@ -1471,7 +1492,7 @@ function resizeImage(file, maxDimension = 900, quality = 0.82) {
 
 // ===================== Tab switching =====================
 // Makes the phone/browser back button move between dashboard tabs instead
-// of exiting the app. On the main "لوحة التحكم" tab specifically, pressing
+// of exiting the app. On the main "Dashboard" tab specifically, pressing
 // back once shows a warning instead of leaving; pressing it again within
 // 2 seconds actually logs out — the familiar "press back again to exit"
 // pattern from mobile apps.
@@ -1516,8 +1537,8 @@ function showExitToast() {
 function switchTab(name, fromPopState) {
   // Defense in depth: even if a hidden nav button were somehow triggered,
   // an employee can never switch into a tab they weren't granted. The
-  // "لوحة التحكم" tab is the one exception — it also hosts the gifts
-  // feature, which only needs "نقطة البيع" access.
+  // "Dashboard" tab is the one exception — it also hosts the gifts
+  // feature, which only needs "POS" access.
   if (isEmployee && employeePermissions) {
     const tabAllowed = name === 'dashboard'
       ? (employeePermissions.dashboard === true || employeePermissions.pos === true)
@@ -1550,7 +1571,7 @@ function switchTab(name, fromPopState) {
   if (name === 'sales') loadSales('day', document.querySelector('.range-tab[data-range="day"]'));
 }
 
-// ===================== Sub-view switching (inside "لوحة التحكم") =====================
+// ===================== Sub-view switching (inside "Dashboard") =====================
 function switchSubView(name) {
   document.querySelectorAll('.sub-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.icon-subnav-btn').forEach(b => b.classList.remove('active'));
@@ -1624,7 +1645,7 @@ async function loadShopInfo() {
   const doc = await db.collection('shops').doc(currentShopId).get();
   if (doc.exists) {
     const info = doc.data().info || {};
-    document.getElementById('shopNameHeader').textContent = info.name || 'لوحة التحكم';
+    document.getElementById('shopNameHeader').textContent = info.name || dt('pageTitle');
     shopNameForReceipt = info.name || '';
 
     document.getElementById('shopNameInput').value = info.name || '';
@@ -1679,7 +1700,7 @@ async function loadShopInfo() {
     const menuUrl = window.location.origin + window.location.pathname.replace('dashboard.html', '') + 'menu.html?shop=' + currentShopId;
     document.getElementById('myMenuUrl').textContent = menuUrl;
     try {
-      if (typeof QRCode === 'undefined') throw new Error('مكتبة QR ما تحمّلت من الإنترنت');
+      if (typeof QRCode === 'undefined') throw new Error('QR library did not load');
       await QRCode.toCanvas(document.getElementById('myQrCanvas'), menuUrl, { width: 180 });
     } catch (qrErr) {
       console.error('QR generation failed:', qrErr);
@@ -1695,8 +1716,8 @@ function renderSubscriptionBanner(info) {
   if (!isManuallyActive) {
     bannerEl.innerHTML = `
       <div class="sub-banner sub-banner-danger">
-        ⚠️ حسابك موقوف حالياً — قائمتك غير ظاهرة للعملاء.
-        ${info.suspensionReason ? `<br>السبب: ${info.suspensionReason}` : ''}
+        ${dt('accountSuspendedMsg')}
+        ${info.suspensionReason ? `<br>${dt('suspensionReasonLbl')} : ${info.suspensionReason}` : ''}
       </div>
     `;
     return;
@@ -1712,17 +1733,17 @@ function renderSubscriptionBanner(info) {
     if (daysLeft < 0) {
       bannerEl.innerHTML = `
         <div class="sub-banner sub-banner-danger">
-          ⚠️ انتهى اشتراكك بتاريخ ${info.subscriptionEndDate} — قائمتك غير ظاهرة للعملاء حالياً. تواصل معنا للتجديد.
+          ${dt('subExpiredPre')} ${info.subscriptionEndDate} ${dt('subExpiredPost')}
         </div>
       `;
       return;
     }
 
     if (daysLeft <= 3) {
-      const daysText = daysLeft === 0 ? 'اليوم' : (daysLeft === 1 ? 'يوم واحد' : `${daysLeft} أيام`);
+      const daysText = daysLeft === 0 ? dt('subEndsToday') : (daysLeft === 1 ? dt('subEndsOneDay') : `${dt('subEndsDaysPre')} ${daysLeft} ${dt('subEndsDaysWord')}`);
       bannerEl.innerHTML = `
         <div class="sub-banner sub-banner-warning">
-          ⏰ اشتراكك سينتهي خلال ${daysText}. تواصل معنا للتجديد.
+          ${dt('subEndsInPre')} ${daysText}. ${dt('contactToRenew')}
         </div>
       `;
       return;
@@ -1893,7 +1914,7 @@ document.getElementById('shopLogoInput').addEventListener('change', async (e) =>
     const preview = document.getElementById('logoPreview');
     preview.src = uploadedLogoUrl;
     preview.style.display = 'block';
-    statusEl.textContent = 'تم رفع الشعار ✓ — لا تنسى تضغط "حفظ التغييرات"';
+    statusEl.textContent = dt('logoUploaded');
   } catch (err) {
     console.error(err);
     statusEl.textContent = dt('logoUploadFailed');
@@ -1921,7 +1942,7 @@ document.getElementById('shopCoverInput').addEventListener('change', async (e) =
     const preview = document.getElementById('coverPreview');
     preview.src = uploadedCoverUrl;
     preview.style.display = 'block';
-    statusEl.textContent = 'تم رفع الغلاف ✓ — لا تنسى تضغط "حفظ التغييرات"';
+    statusEl.textContent = dt('coverUploaded');
   } catch (err) {
     console.error(err);
     statusEl.textContent = dt('coverUploadFailed');
@@ -2382,7 +2403,7 @@ document.getElementById('itemImage').addEventListener('change', async (e) => {
     const preview = document.getElementById('itemImagePreview');
     preview.src = uploadedImageUrl;
     preview.style.display = 'block';
-    statusEl.textContent = 'تم رفع الصورة ✓';
+    statusEl.textContent = dt('itemImageUploaded');
   } catch (err) {
     console.error(err);
     statusEl.textContent = dt('itemImageUploadFailed');
@@ -2424,7 +2445,7 @@ async function saveItem() {
     switchSubView('list');
   } catch (err) {
     console.error(err);
-    errorEl.textContent = 'حدث خطأ أثناء الحفظ. حاول مرة أخرى.';
+    errorEl.textContent = dt('saveErrorGeneric');
   }
 }
 
@@ -2498,7 +2519,7 @@ let completedOrdersUnsub = null;
 
 const alertedCancelIds = new Set();
 
-// ===================== Gifts (أهدِ صديق) =====================
+// ===================== Gifts =====================
 let giftsUnsub = null;
 let pendingGiftsData = [];
 
@@ -2539,7 +2560,7 @@ function renderPendingGifts() {
   }
 
   el.innerHTML = pendingGiftsData.map(gift => {
-    const itemsText = (gift.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+    const itemsText = (gift.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join(', ');
     return `
       <div class="card" style="margin-bottom:12px;">
         <div style="font-weight:700; margin-bottom:4px;">🎁 ${gift.recipientName || ''}</div>
@@ -2852,7 +2873,7 @@ function sendWhatsAppInvoice(orderId) {
   const order = lastOrdersData.find(o => o.id === orderId) || completedOrdersData.find(o => o.id === orderId);
   if (!order || !order.loyaltyPhone) return;
 
-  const itemsText = order.items.map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+  const itemsText = order.items.map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join(', ');
   const message = `*${shopNameForReceipt}*\n\n${dt('waInvoiceItemsLabel')}: ${itemsText}\n${dt('total')}: ${Number(order.total).toFixed(2)} ${dt('currency')}\n\n${dt('waInvoiceThankYou')}`;
 
   const phoneDigits = order.loyaltyPhone.replace(/\D/g, '');
@@ -2948,8 +2969,8 @@ function printReceiptFromOrder(order) {
 
   const itemsRows = (order.items || []).map(i => `
     <tr>
-      <td style="text-align:right;">${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} × ${i.qty}</td>
-      <td style="text-align:left;">${(i.price * i.qty).toFixed(2)}</td>
+      <td style="text-align:left;">${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} × ${i.qty}</td>
+      <td style="text-align:right;">${(i.price * i.qty).toFixed(2)}</td>
     </tr>
   `).join('');
 
@@ -2966,7 +2987,7 @@ function printReceiptFromOrder(order) {
     <table>
       <tr class="receipt-total-row">
         <td>${dt('total')}</td>
-        <td style="text-align:left;">${Number(order.total).toFixed(2)} ${dt('currency')}</td>
+        <td style="text-align:right;">${Number(order.total).toFixed(2)} ${dt('currency')}</td>
       </tr>
     </table>
     <div class="receipt-line"></div>
@@ -3099,7 +3120,7 @@ function showCancelledOrderPopup(order) {
     : order.orderType === 'delivery'
       ? dt('orderFromDelivery')
       : `🍽️ ${dt('tableLabel')} ${order.tableNumber || '-'}`;
-  const itemsText = (order.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+  const itemsText = (order.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join(', ');
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -3337,7 +3358,7 @@ async function openNewOrderModal() {
       <div id="posError" class="error-msg"></div>
 
       <div class="pos-floating-submit-wrap">
-        <button class="btn" id="submitPosOrderBtn" style="width:100%;" onclick="submitPosOrder()">📤 إرسال الطلب</button>
+        <button class="btn" id="submitPosOrderBtn" style="width:100%;" onclick="submitPosOrder()">${dt('sendOrderBtn')}</button>
       </div>
     </div>
   `;
@@ -3483,7 +3504,7 @@ async function submitPosOrder() {
       errorEl.textContent = dt('orderSendErrorGeneric');
     }
     submitBtn.disabled = false;
-    submitBtn.textContent = '📤 إرسال الطلب';
+    submitBtn.textContent = dt('sendOrderBtn');
   }
 }
 
@@ -3548,7 +3569,7 @@ async function saveAllInventory() {
 // ===================== Auto "best seller" badge =====================
 // Runs quietly each time the dashboard loads: looks at the last 30 days of
 // orders, finds the top-selling item by name, and flags it (bestSeller: true)
-// so the customer menu can show a small "الأكثر طلباً" badge — no manual
+// so the customer menu can show a small "Best seller" badge — no manual
 // button needed, it just stays current every time the owner opens the app.
 // ===================== Public rating stats (readable by customers) =====================
 // Orders aren't listable by customers (privacy), so we can't compute this live
@@ -3644,11 +3665,11 @@ async function exportSalesExcel() {
 
   const exportLang = document.getElementById('exportLang').value;
   const EL = {
-    ar: {
-      reportTitle: 'تقرير المبيعات', period: 'الفترة', to: 'إلى', totalSales: 'إجمالي المبيعات (ر.ع)',
-      orderCount: 'عدد الطلبات', topSelling: 'الأكثر مبيعاً', qty: 'الكمية', date: 'التاريخ', time: 'الوقت',
-      type: 'النوع', items: 'الأصناف', payment: 'طريقة الدفع', total: 'الإجمالي (ر.ع)', table: 'طاولة',
-      cash: 'نقداً', transfer: 'تحويل بنكي', card: 'فيزا/بطاقة', sheetName: 'المبيعات', giftLabel: 'هدية'
+    fr: {
+      reportTitle: 'Rapport des ventes', period: 'Période', to: 'au', totalSales: 'Ventes totales (OMR)',
+      orderCount: 'Nombre de commandes', topSelling: 'Meilleures ventes', qty: 'Qté', date: 'Date', time: 'Heure',
+      type: 'Type', items: 'Articles', payment: 'Mode de paiement', total: 'Total (OMR)', table: 'Table',
+      cash: 'Comptant', transfer: 'Virement bancaire', card: 'Carte', sheetName: 'Ventes', giftLabel: 'Cadeau'
     },
     en: {
       reportTitle: 'Sales Report', period: 'Period', to: 'to', totalSales: 'Total Sales (OMR)',
@@ -3688,7 +3709,7 @@ async function exportSalesExcel() {
       const itemsText = (o.items || []).map(i => {
         const itemLabel = (exportLang === 'en' && i.nameEn) ? i.nameEn : i.name;
         return `${itemLabel} ×${i.qty}`;
-      }).join('، ');
+      }).join(', ');
       const paymentLabels = { cash: EL.cash, transfer: EL.transfer, card: EL.card };
       const paymentText = o.isGiftOrder ? `🎁 ${EL.giftLabel}` : (paymentLabels[o.paymentMethod] || '-');
 

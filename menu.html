@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,21 +11,21 @@
 <meta name="theme-color" content="#6B4226">
 <script src="pwa-install.js" defer></script>
 
-<title>القائمة</title>
+<title>Menu</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <div class="wrap" id="app">
-  <div class="state-msg">جاري تحميل القائمة...</div>
+  <div class="state-msg">Chargement du menu...</div>
 </div>
 
 <button class="lang-toggle" id="langToggle" onclick="toggleLang()" style="display:none;">EN</button>
 
 <!-- Floating cart bar -->
 <div class="cart-bar" id="cartBar" style="display:none;" onclick="openCartModal()">
-  <span id="cartCount">0 أصناف</span>
-  <span id="cartTotal">0.00 ر.ع</span>
+  <span id="cartCount">0 articles</span>
+  <span id="cartTotal">0.00 OMR</span>
 </div>
 
 <!-- Persistent order status bar (shown after an order is placed) -->
@@ -46,9 +46,10 @@ let shopInfo = {};
 let cart = {}; // { itemId: { name, price, qty } }
 let itemMeta = {}; // { itemId: { name, price } } — used to safely rebuild controls without re-escaping strings
 let suggestedItemIds = [];
-let currentLang = localStorage.getItem('menuLang') || 'ar';
+let currentLang = localStorage.getItem('menuLang');
+if (currentLang !== 'fr' && currentLang !== 'en') currentLang = 'fr';
 let orderTypePreset = false; // true once the person picked table/car/delivery from the entry screen
-let giftEntryMode = false;   // true if they picked "أهدِ صديق" from the entry screen
+let giftEntryMode = false;   // true if they picked "Offrir à un ami" from the entry screen
 let pendingMenuCategories = null; // holds the fetched/grouped items while the entry screen is showing
 let pendingMenuShopName = '';
 let pendingEntryTypesEnabled = null;
@@ -56,124 +57,125 @@ let pendingEntryGiftAvailable = false;
 let pendingCoverStyle = '';
 
 const translations = {
-  loadingMenu: { ar: 'جاري تحميل القائمة...', en: 'Loading menu...' },
-  invalidLink: { ar: 'رابط غير صحيح — لا يوجد معرّف كوفي.', en: 'Invalid link — no shop ID found.' },
-  shopNotFound: { ar: 'هذا الكوفي غير موجود.', en: 'This shop does not exist.' },
-  menuUnavailable: { ar: 'القائمة غير متاحة حالياً.', en: 'Menu is currently unavailable.' },
-  noItems: { ar: 'لا توجد أصناف بالقائمة حالياً.', en: 'No items on the menu yet.' },
-  loadError: { ar: 'حدث خطأ أثناء تحميل القائمة.', en: 'An error occurred while loading the menu.' },
-  unavailableTag: { ar: 'غير متاح', en: 'Unavailable' },
-  itemsWord: { ar: 'أصناف', en: 'items' },
-  currency: { ar: 'ر.ع', en: 'OMR' },
-  reviewOrder: { ar: 'مراجعة الطلب', en: 'Review order' },
-  total: { ar: 'الإجمالي', en: 'Total' },
-  yourName: { ar: 'اسمك', en: 'Your name' },
-  namePlaceholder: { ar: 'مثال: أحمد', en: 'e.g. Ahmed' },
-  tableNumber: { ar: 'رقم الطاولة (اختياري)', en: 'Table number (optional)' },
-  tablePlaceholder: { ar: 'مثال: 5', en: 'e.g. 5' },
-  notesLabel: { ar: 'ملاحظات (اختياري)', en: 'Notes (optional)' },
-  paymentMethodLbl: { ar: 'طريقة الدفع', en: 'Payment method' },
-  payCashInstruction: { ar: 'الرجاء الدفع عند المحاسب كاش', en: 'Please pay in cash at the counter' },
-  payCardInstruction: { ar: 'الرجاء الدفع عند المحاسب بالفيزا', en: 'Please pay by card at the counter' },
-  payTransferInstruction: { ar: 'تم استلام وصل التحويل، بانتظار تأكيد الكوفي ✓', en: 'Transfer receipt received, awaiting confirmation from the shop ✓' },
-  bankTransferInstructions: { ar: 'حوّل المبلغ على الرقم التالي:', en: 'Transfer the amount to the following number:' },
-  attachReceiptBtn: { ar: 'إرفاق وصل التحويل', en: 'Attach transfer receipt' },
-  uploadingReceipt: { ar: 'جاري رفع الوصل...', en: 'Uploading receipt...' },
-  receiptUploaded: { ar: 'تم إرفاق الوصل ✓', en: 'Receipt attached ✓' },
-  receiptUploadFailed: { ar: 'تعذر رفع الوصل، حاول مرة أخرى.', en: 'Could not upload the receipt. Please try again.' },
-  receiptRequiredError: { ar: 'الرجاء إرفاق وصل التحويل قبل إرسال الطلب.', en: 'Please attach the transfer receipt before sending the order.' },
-  outOfStockError: { ar: 'نفذت الكمية من', en: 'Out of stock' },
-  sendingOrderLoading: { ar: '⏳ جاري الإرسال...', en: '⏳ Sending...' },
-  cancelOrderBtn: { ar: '❌ إلغاء الطلب', en: '❌ Cancel order' },
-  confirmCancelOrder: { ar: 'متأكد تريد تلغي طلبك؟', en: 'Are you sure you want to cancel your order?' },
-  cancelOrderFailed: { ar: 'تعذر إلغاء الطلب، حاول مرة أخرى.', en: 'Could not cancel the order. Please try again.' },
-  yesCancelBtn: { ar: 'نعم، ألغِ الطلب', en: 'Yes, cancel it' },
-  noKeepBtn: { ar: 'تراجع', en: 'No, keep it' },
-  loyaltyPhoneLbl: { ar: 'رقم جوالك (لجمع نقاط الولاء) - اختياري', en: 'Your phone (for loyalty points) - optional' },
-  rewardReadyMsg: { ar: 'عندك مكافأة جاهزة! أخبر الموظف عند الاستلام:', en: 'You have a reward ready! Tell the staff when you pick up:' },
-  rewardReadyPopupTitle: { ar: 'مبروك! 🎉 طلبك هذا مجاني', en: 'Congrats! 🎉 This order is free' },
-  okBtn: { ar: 'حسناً', en: 'OK' },
-  pointsProgressMsg: { ar: 'باقي لك {count} طلبات على المكافأة', en: '{count} more orders until your reward' },
-  payCash: { ar: '💵 نقداً', en: '💵 Cash' },
-  payTransfer: { ar: '🏦 تحويل بنكي', en: '🏦 Bank transfer' },
-  payCard: { ar: '💳 فيزا / بطاقة', en: '💳 Visa / Card' },
-  notesPlaceholder: { ar: 'مثال: بدون سكر', en: 'e.g. no sugar' },
-  sendOrder: { ar: 'إرسال الطلب', en: 'Send order' },
-  enterNameError: { ar: 'الرجاء إدخال اسمك.', en: 'Please enter your name.' },
-  orderSendError: { ar: 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.', en: 'Something went wrong sending your order. Please try again.' },
-  orderSent: { ar: 'تم إرسال طلبك!', en: 'Your order has been sent!' },
-  close: { ar: 'إغلاق', en: 'Close' },
-  sendAsGiftLink: { ar: 'أرسلها كهدية بدلاً من كذا', en: 'Send this as a gift instead' },
-  giftModalTitle: { ar: 'أهدِ صديق', en: 'Gift a friend' },
-  giftModalSubtitle: { ar: 'الدفع للهدية يكون بالتحويل البنكي بس.', en: 'Gift payments are by bank transfer only.' },
-  giftRecipientNameLbl: { ar: 'اسم المُهدى له', en: "Recipient's name" },
-  giftRecipientPhoneLbl: { ar: 'رقم جوال المُهدى له', en: "Recipient's phone" },
-  giftPersonalMessageLbl: { ar: 'رسالة لصديقك (اختياري)', en: 'A message for your friend (optional)' },
-  giftPersonalMessagePlaceholder: { ar: 'اكتب رسالتك هنا...', en: 'Write your message here...' },
-  giftFieldsError: { ar: 'الرجاء إدخال اسم ورقم جوال المُهدى له.', en: "Please enter the recipient's name and phone number." },
-  sendGiftBtn: { ar: 'إرسال الهدية', en: 'Send gift' },
-  giftSentTitle: { ar: 'تم إرسال هديتك!', en: 'Your gift has been sent!' },
-  giftSentMsg: { ar: 'المقهى بيتواصل مباشرة مع', en: 'The shop will contact' },
-  giftNotFound: { ar: 'هذي الهدية غير موجودة.', en: 'This gift could not be found.' },
-  giftBoxTitle: { ar: 'عندك هدية!', en: 'You have a gift!' },
-  tapToOpenGift: { ar: 'اضغط لفتح هديتك', en: 'Tap to open your gift' },
-  giftContentsLbl: { ar: 'محتويات الهدية', en: 'Gift contents' },
-  giftFreeLabel: { ar: 'هدية مجانية', en: 'Free gift' },
-  giftOrderNote: { ar: 'هدية إلى', en: 'Gift to' },
-  redeemingGift: { ar: 'جاري الاستلام...', en: 'Receiving...' },
-  claimGiftBtn: { ar: 'استلام الهدية', en: 'Receive gift' },
-  claimGiftHint: { ar: 'اضغط استلام الهدية عندما تصل إلى المقهى', en: 'Press receive gift when you arrive at the shop' },
-  giftClaimedSuccess: { ar: 'تم استلام هديتك، تفضل بالجلوس بانتظار تحضيرها ✓', en: 'Your gift has been received — please have a seat while it\'s prepared ✓' },
-  giftAlreadyClaimed: { ar: 'تم استلام هذي الهدية من قبل.', en: 'This gift has already been received.' },
-  giftEntryBtn: { ar: 'أهدِ صديق', en: 'Gift a friend' },
-  giftPickItemsHint: { ar: 'اختر الأصناف اللي تبي تهديها من القائمة تحت، وبعدين اضغط هذا الزر مرة ثانية.', en: 'Pick the items you want to gift from the menu below, then tap this button again.' },
-  orderCancelledByShopMsg: { ar: 'تم إلغاء طلبك من قبل الكوفي', en: 'Your order was cancelled by the shop' },
-  yourOrderStatus: { ar: 'حالة طلبك', en: 'Your order status' },
-  etaText: { ar: 'الوقت المتوقع', en: 'Estimated time' },
-  minuteWord: { ar: 'دقيقة', en: 'min' },
-  orderPickedUp: { ar: 'طلب جاهز', en: 'Order picked up' },
-  rateOrderPrompt: { ar: 'وش رأيك بطلبك؟', en: 'How was your order?' },
-  ratingsWord: { ar: 'تقييم', en: 'ratings' },
-  reserveRoomBtn: { ar: 'احجز قاعة', en: 'Reserve a room' },
-  roomFieldLbl: { ar: 'القاعة', en: 'Room' },
-  dateFieldLbl: { ar: 'التاريخ', en: 'Date' },
-  timeFieldLbl: { ar: 'الوقت', en: 'Time' },
-  guestsFieldLbl: { ar: 'عدد الأشخاص', en: 'Number of guests' },
-  phoneFieldLbl: { ar: 'رقم الهاتف', en: 'Phone number' },
-  confirmReservationBtn: { ar: 'تأكيد الحجز', en: 'Confirm reservation' },
-  reserveNameRequired: { ar: 'الرجاء إدخال اسمك ورقم هاتفك.', en: 'Please enter your name and phone number.' },
-  reservationConfirmed: { ar: 'تم تأكيد حجزك ✓', en: 'Your reservation is confirmed ✓' },
-  slotTakenError: { ar: 'عذراً، هذا الوقت محجوز بالفعل. اختر وقت ثاني.', en: 'Sorry, that time slot is already booked. Please choose another.' },
-  skipRating: { ar: 'تخطي', en: 'Skip' },
-  sendRatingBtn: { ar: 'إرسال التقييم', en: 'Submit rating' },
-  sendingMsg: { ar: 'جاري الإرسال...', en: 'Sending...' },
-  addToCartBtn: { ar: 'أضف للسلة', en: 'Add to cart' },
-  openingHoursLbl: { ar: 'مواعيد العمل', en: 'Opening hours' },
-  searchPlaceholder: { ar: '🔍 دور على صنف...', en: '🔍 Search menu...' },
-  suggestAddTitle: { ar: '💡 حاب تضيف كمان؟', en: '💡 Want to add this too?' },
-  addBtn: { ar: 'إضافة', en: 'Add' },
-  stepReceived: { ar: 'استلم طلبك', en: 'Order received' },
-  stepPreparing: { ar: 'جاري التحضير', en: 'Preparing' },
-  stepReady: { ar: 'الطلب جاهز', en: 'Ready' },
-  barReceived: { ar: '✅ تم استلام طلبك', en: '✅ Order received' },
-  barPreparing: { ar: '🔥 جاري تحضير طلبك', en: '🔥 Preparing your order' },
-  barReady: { ar: '🎉 طلبك جاهز — تفضل استلمه', en: '🎉 Your order is ready — please pick it up' },
-  orderFromCar: { ar: 'طلب من السيارة', en: 'Order from car' },
-  orderFromDelivery: { ar: 'طلب خارجي', en: 'External order' },
-  deliveryPhoneLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
-  deliveryMapsLbl: { ar: 'رابط موقعك على خرائط جوجل', en: 'Your Google Maps location link' },
-  deliveryMapsPlaceholder: { ar: 'https://maps.google.com/...', en: 'https://maps.google.com/...' },
-  deliveryWilayatLbl: { ar: 'الولاية', en: 'Wilayat' },
-  deliveryAreaLbl: { ar: 'المنطقة', en: 'Area' },
-  deliveryHouseNumberLbl: { ar: 'رقم البيت (اختياري)', en: 'House number (optional)' },
-  deliveryFieldsError: { ar: 'الرجاء تعبئة رقم الواتساب ورابط الموقع والولاية والمنطقة.', en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
-  orderFromTable: { ar: 'طلب من الطاولة', en: 'Order from table' },
-  carNumber: { ar: 'رقم السيارة', en: 'Car plate number' },
-  carNumberPlaceholder: { ar: 'مثال: 12345', en: 'e.g. 12345' },
-  carColor: { ar: 'لون ونوع السيارة', en: 'Car color & model' },
-  carColorPlaceholder: { ar: 'مثال: تويوتا بيضاء', en: 'e.g. White Toyota' },
-  carFieldsError: { ar: 'الرجاء إدخال رقم السيارة ولونها.', en: 'Please enter your car plate number and color.' },
-  bestSellerTag: { ar: 'الأكثر طلباً', en: 'Best seller' }
+  loadingMenu: { fr: "Chargement du menu...", en: 'Loading menu...' },
+  invalidLink: { fr: "Lien invalide — aucun identifiant de café trouvé.", en: 'Invalid link — no shop ID found.' },
+  shopNotFound: { fr: "Ce café n'existe pas.", en: 'This shop does not exist.' },
+  menuUnavailable: { fr: "Le menu n'est pas disponible pour le moment.", en: 'Menu is currently unavailable.' },
+  noItems: { fr: "Aucun article au menu pour le moment.", en: 'No items on the menu yet.' },
+  loadError: { fr: "Une erreur s'est produite lors du chargement du menu.", en: 'An error occurred while loading the menu.' },
+  unavailableTag: { fr: "Non disponible", en: 'Unavailable' },
+  itemsWord: { fr: "articles", en: 'items' },
+  currency: { fr: "OMR", en: 'OMR' },
+  reviewOrder: { fr: "Vérifier la commande", en: 'Review order' },
+  total: { fr: "Total", en: 'Total' },
+  yourName: { fr: "Votre nom", en: 'Your name' },
+  namePlaceholder: { fr: "ex. : Marie", en: 'e.g. Ahmed' },
+  tableNumber: { fr: "Numéro de table (facultatif)", en: 'Table number (optional)' },
+  tablePlaceholder: { fr: "ex. : 5", en: 'e.g. 5' },
+  notesLabel: { fr: "Remarques (facultatif)", en: 'Notes (optional)' },
+  paymentMethodLbl: { fr: "Mode de paiement", en: 'Payment method' },
+  payCashInstruction: { fr: "Veuillez payer comptant à la caisse", en: 'Please pay in cash at the counter' },
+  payCardInstruction: { fr: "Veuillez payer par carte à la caisse", en: 'Please pay by card at the counter' },
+  payTransferInstruction: { fr: "Reçu de virement reçu, en attente de confirmation du café ✓", en: 'Transfer receipt received, awaiting confirmation from the shop ✓' },
+  bankTransferInstructions: { fr: "Veuillez virer le montant au numéro suivant :", en: 'Transfer the amount to the following number:' },
+  attachReceiptBtn: { fr: "Joindre le reçu de virement", en: 'Attach transfer receipt' },
+  uploadingReceipt: { fr: "Téléversement du reçu...", en: 'Uploading receipt...' },
+  receiptUploaded: { fr: "Reçu joint ✓", en: 'Receipt attached ✓' },
+  receiptUploadFailed: { fr: "Impossible de téléverser le reçu. Veuillez réessayer.", en: 'Could not upload the receipt. Please try again.' },
+  receiptRequiredError: { fr: "Veuillez joindre le reçu de virement avant d'envoyer la commande.", en: 'Please attach the transfer receipt before sending the order.' },
+  outOfStockError: { fr: "Rupture de stock", en: 'Out of stock' },
+  sendingOrderLoading: { fr: "⏳ Envoi en cours...", en: '⏳ Sending...' },
+  cancelOrderBtn: { fr: "❌ Annuler la commande", en: '❌ Cancel order' },
+  confirmCancelOrder: { fr: "Voulez-vous vraiment annuler votre commande ?", en: 'Are you sure you want to cancel your order?' },
+  cancelOrderFailed: { fr: "Impossible d'annuler la commande. Veuillez réessayer.", en: 'Could not cancel the order. Please try again.' },
+  yesCancelBtn: { fr: "Oui, annuler", en: 'Yes, cancel it' },
+  noKeepBtn: { fr: "Non, garder", en: 'No, keep it' },
+  loyaltyPhoneLbl: { fr: "Votre numéro de téléphone (pour les points fidélité) - facultatif", en: 'Your phone (for loyalty points) - optional' },
+  rewardReadyMsg: { fr: "Vous avez une récompense ! Mentionnez-le au personnel lors du retrait :", en: 'You have a reward ready! Tell the staff when you pick up:' },
+  rewardReadyPopupTitle: { fr: "Félicitations ! 🎉 Cette commande est gratuite", en: 'Congrats! 🎉 This order is free' },
+  okBtn: { fr: "OK", en: 'OK' },
+  pointsProgressMsg: { fr: "Encore {count} commandes avant votre récompense", en: '{count} more orders until your reward' },
+  payCash: { fr: "💵 Comptant", en: '💵 Cash' },
+  payTransfer: { fr: "🏦 Virement bancaire", en: '🏦 Bank transfer' },
+  payCard: { fr: "💳 Carte", en: '💳 Visa / Card' },
+  notesPlaceholder: { fr: "ex. : sans sucre", en: 'e.g. no sugar' },
+  sendOrder: { fr: "Envoyer la commande", en: 'Send order' },
+  enterNameError: { fr: "Veuillez entrer votre nom.", en: 'Please enter your name.' },
+  orderSendError: { fr: "Une erreur s'est produite lors de l'envoi de votre commande. Veuillez réessayer.", en: 'Something went wrong sending your order. Please try again.' },
+  orderSent: { fr: "Votre commande a été envoyée !", en: 'Your order has been sent!' },
+  close: { fr: "Fermer", en: 'Close' },
+  sendAsGiftLink: { fr: "L'offrir en cadeau plutôt", en: 'Send this as a gift instead' },
+  giftModalTitle: { fr: "Offrir à un ami", en: 'Gift a friend' },
+  giftModalSubtitle: { fr: "Le paiement des cadeaux se fait uniquement par virement bancaire.", en: 'Gift payments are by bank transfer only.' },
+  giftRecipientNameLbl: { fr: "Nom du destinataire", en: "Recipient's name" },
+  giftRecipientPhoneLbl: { fr: "Téléphone du destinataire", en: "Recipient's phone" },
+  giftPersonalMessageLbl: { fr: "Un message pour votre ami (facultatif)", en: 'A message for your friend (optional)' },
+  giftPersonalMessagePlaceholder: { fr: "Écrivez votre message ici...", en: 'Write your message here...' },
+  giftFieldsError: { fr: "Veuillez entrer le nom et le numéro de téléphone du destinataire.", en: "Please enter the recipient's name and phone number." },
+  sendGiftBtn: { fr: "Envoyer le cadeau", en: 'Send gift' },
+  giftSentTitle: { fr: "Votre cadeau a été envoyé !", en: 'Your gift has been sent!' },
+  giftSentMsg: { fr: "Le café communiquera directement avec", en: 'The shop will contact' },
+  giftNotFound: { fr: "Ce cadeau est introuvable.", en: 'This gift could not be found.' },
+  giftBoxTitle: { fr: "Vous avez un cadeau !", en: 'You have a gift!' },
+  tapToOpenGift: { fr: "Touchez pour ouvrir votre cadeau", en: 'Tap to open your gift' },
+  giftContentsLbl: { fr: "Contenu du cadeau", en: 'Gift contents' },
+  giftFreeLabel: { fr: "Cadeau gratuit", en: 'Free gift' },
+  giftOrderNote: { fr: "Cadeau pour", en: 'Gift to' },
+  redeemingGift: { fr: "Réception en cours...", en: 'Receiving...' },
+  claimGiftBtn: { fr: "Recevoir le cadeau", en: 'Receive gift' },
+  claimGiftHint: { fr: "Appuyez sur « Recevoir le cadeau » une fois arrivé au café", en: 'Press receive gift when you arrive at the shop' },
+  giftClaimedSuccess: { fr: "Votre cadeau a été reçu — installez-vous pendant qu'on le prépare ✓", en: 'Your gift has been received — please have a seat while it\'s prepared ✓' },
+  giftAlreadyClaimed: { fr: "Ce cadeau a déjà été reçu.", en: 'This gift has already been received.' },
+  giftEntryBtn: { fr: "Offrir à un ami", en: 'Gift a friend' },
+  giftPickItemsHint: { fr: "Choisissez les articles à offrir dans le menu ci-dessous, puis appuyez de nouveau sur ce bouton.", en: 'Pick the items you want to gift from the menu below, then tap this button again.' },
+  orderCancelledByShopMsg: { fr: "Votre commande a été annulée par le café", en: 'Your order was cancelled by the shop' },
+  yourOrderStatus: { fr: "État de votre commande", en: 'Your order status' },
+  etaText: { fr: "Temps estimé", en: 'Estimated time' },
+  minuteWord: { fr: "min", en: 'min' },
+  orderPickedUp: { fr: "Commande récupérée", en: 'Order picked up' },
+  rateOrderPrompt: { fr: "Comment était votre commande ?", en: 'How was your order?' },
+  ratingsWord: { fr: "évaluations", en: 'ratings' },
+  reserveRoomBtn: { fr: "Réserver une salle", en: 'Reserve a room' },
+  roomFieldLbl: { fr: "Salle", en: 'Room' },
+  dateFieldLbl: { fr: "Date", en: 'Date' },
+  timeFieldLbl: { fr: "Heure", en: 'Time' },
+  guestsFieldLbl: { fr: "Nombre de personnes", en: 'Number of guests' },
+  phoneFieldLbl: { fr: "Numéro de téléphone", en: 'Phone number' },
+  confirmReservationBtn: { fr: "Confirmer la réservation", en: 'Confirm reservation' },
+  reserveNameRequired: { fr: "Veuillez entrer votre nom et votre numéro de téléphone.", en: 'Please enter your name and phone number.' },
+  reservationConfirmed: { fr: "Votre réservation est confirmée ✓", en: 'Your reservation is confirmed ✓' },
+  slotTakenError: { fr: "Désolé, ce créneau est déjà réservé. Veuillez en choisir un autre.", en: 'Sorry, that time slot is already booked. Please choose another.' },
+  skipRating: { fr: "Passer", en: 'Skip' },
+  sendRatingBtn: { fr: "Envoyer l'évaluation", en: 'Submit rating' },
+  sendingMsg: { fr: "Envoi en cours...", en: 'Sending...' },
+  addToCartBtn: { fr: "Ajouter au panier", en: 'Add to cart' },
+  openingHoursLbl: { fr: "Heures d'ouverture", en: 'Opening hours' },
+  searchPlaceholder: { fr: "🔍 Rechercher un article...", en: '🔍 Search menu...' },
+  suggestAddTitle: { fr: "💡 Vous aimeriez ajouter ceci ?", en: '💡 Want to add this too?' },
+  addBtn: { fr: "Ajouter", en: 'Add' },
+  stepReceived: { fr: "Commande reçue", en: 'Order received' },
+  stepPreparing: { fr: "En préparation", en: 'Preparing' },
+  stepReady: { fr: "Prête", en: 'Ready' },
+  barReceived: { fr: "✅ Commande reçue", en: '✅ Order received' },
+  barPreparing: { fr: "🔥 Votre commande est en préparation", en: '🔥 Preparing your order' },
+  barReady: { fr: "🎉 Votre commande est prête — venez la chercher", en: '🎉 Your order is ready — please pick it up' },
+  orderFromCar: { fr: "Commander de la voiture", en: 'Order from car' },
+  orderFromDelivery: { fr: "Livraison", en: 'External order' },
+  deliveryPhoneLbl: { fr: "Numéro WhatsApp", en: 'WhatsApp number' },
+  deliveryMapsLbl: { fr: "Lien de votre position Google Maps", en: 'Your Google Maps location link' },
+  deliveryMapsPlaceholder: { fr: "https://maps.google.com/...", en: 'https://maps.google.com/...' },
+  deliveryWilayatLbl: { fr: "Ville", en: 'Wilayat' },
+  deliveryAreaLbl: { fr: "Quartier", en: 'Area' },
+  deliveryHouseNumberLbl: { fr: "Numéro civique (facultatif)", en: 'House number (optional)' },
+  deliveryFieldsError: { fr: "Veuillez remplir le numéro WhatsApp, le lien de position, la ville et le quartier.", en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
+  orderFromTable: { fr: "Commander à la table", en: 'Order from table' },
+  carNumber: { fr: "Numéro de plaque", en: 'Car plate number' },
+  carNumberPlaceholder: { fr: "ex. : ABC 123", en: 'e.g. 12345' },
+  carColor: { fr: "Couleur et modèle de la voiture", en: 'Car color & model' },
+  carColorPlaceholder: { fr: "ex. : Toyota blanche", en: 'e.g. White Toyota' },
+  carFieldsError: { fr: "Veuillez entrer le numéro de plaque et la couleur de la voiture.", en: 'Please enter your car plate number and color.' },
+  guestsWord: { fr: "personnes", en: 'guests' },
+  bestSellerTag: { fr: "Populaire", en: 'Best seller' }
 };
 
 function t(key) {
@@ -181,7 +183,7 @@ function t(key) {
 }
 
 function toggleLang() {
-  currentLang = currentLang === 'ar' ? 'en' : 'ar';
+  currentLang = currentLang === 'fr' ? 'en' : 'fr';
   localStorage.setItem('menuLang', currentLang);
   applyLangDirection();
   loadMenu();
@@ -189,8 +191,8 @@ function toggleLang() {
 
 function applyLangDirection() {
   document.documentElement.lang = currentLang;
-  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-  document.getElementById('langToggle').textContent = currentLang === 'ar' ? 'EN' : 'عربي';
+  document.documentElement.dir = 'ltr';
+  document.getElementById('langToggle').textContent = currentLang === 'fr' ? 'EN' : 'FR';
   document.getElementById('langToggle').style.display = 'block';
 }
 
@@ -222,7 +224,7 @@ async function showGiftViewPage(giftId) {
       <div id="giftContentsWrap" style="display:none;">
         <h2 style="margin-bottom:4px;">${t('giftBoxTitle')}</h2>
         <p style="color:var(--stone); margin-bottom:24px;">${shopName}</p>
-        <div class="card" style="text-align:right;">
+        <div class="card" style="text-align:left;">
           ${gift.personalMessage ? `<p style="font-style:italic; color:var(--ink); margin-bottom:16px; padding-bottom:16px; border-bottom:1px dashed var(--line);">"${gift.personalMessage}"</p>` : ''}
           <div style="font-weight:700; margin-bottom:8px;">${t('giftContentsLbl')}</div>
           ${itemsHtml}
@@ -362,7 +364,7 @@ async function loadMenu() {
     menuSnap.forEach(doc => {
       const item = doc.data();
       if (item.hidden === true) return; // fully hidden from customers, skip entirely
-      const catAr = item.category || 'أخرى';
+      const catAr = item.category || (currentLang === 'en' ? 'Other' : 'Autre');
       const catDisplay = (currentLang === 'en' && item.categoryEn) ? item.categoryEn : catAr;
       if (!categories[catDisplay]) categories[catDisplay] = [];
       categories[catDisplay].push({ id: doc.id, ...item });
@@ -1088,7 +1090,7 @@ function openCartModal() {
   const items = Object.entries(cart);
   if (items.length === 0) return;
 
-  // Came in through "أهدِ صديق" on the entry screen — go straight to the
+  // Came in through "Offrir à un ami" on the entry screen — go straight to the
   // gift flow instead of the normal order review.
   if (giftEntryMode) {
     openGiftModal();
@@ -1597,7 +1599,7 @@ function clearOrderTracking() {
   closeCartModal();
 }
 
-// Shown when the customer taps "طلب جاهز" — quick 1-5 star rating before
+// Shown when the customer taps "Commande récupérée" — quick 1-5 star rating before
 // the order tracker closes. Rating is optional; skipping still clears tracking.
 let selectedRatingStars = 0;
 let ratingInProgress = false;

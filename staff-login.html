@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,37 +10,37 @@
 <meta name="theme-color" content="#6B4226">
 <script src="pwa-install.js" defer></script>
 
-<title>دخول الموظفين</title>
+<title>Connexion du personnel</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div id="loadingMsg" class="state-msg">جاري التحقق من تسجيل الدخول...</div>
+<div id="loadingMsg" class="state-msg">Vérification de la connexion...</div>
 
 <div class="wrap" id="loginForm" style="max-width:400px; padding-top:60px; display:none;">
-  <div class="shop-name display" style="text-align:center; margin-bottom:30px;">دخول الموظفين</div>
+  <div class="shop-name display" style="text-align:center; margin-bottom:30px;">Connexion du personnel</div>
 
   <div class="card">
     <div class="field">
-      <label for="staffEmail">البريد الإلكتروني</label>
+      <label for="staffEmail">Courriel</label>
       <input type="email" id="staffEmail" placeholder="you@example.com">
     </div>
     <div class="field">
-      <label for="staffPassword">كلمة المرور</label>
+      <label for="staffPassword">Mot de passe</label>
       <div style="display:flex; gap:6px;">
         <input type="password" id="staffPassword" placeholder="••••••••" style="flex:1;">
         <button type="button" onclick="toggleStaffPwVisibility()" class="btn btn-ghost" style="padding:8px 12px;">👁️</button>
       </div>
     </div>
-    <button class="btn" style="width:100%;" onclick="staffLogin()">دخول</button>
+    <button class="btn" style="width:100%;" onclick="staffLogin()">Se connecter</button>
     <div id="error" class="error-msg"></div>
     <div id="successMsg" style="color:#3D6B4F; font-size:0.85rem; margin-top:8px;"></div>
 
     <div style="text-align:center; margin-top:16px; font-size:0.85rem;">
-      <a href="#" onclick="forgotStaffPassword(); return false;" style="color:var(--accent);">نسيت كلمة المرور؟</a>
+      <a href="#" onclick="forgotStaffPassword(); return false;" style="color:var(--accent);">Mot de passe oublié ?</a>
     </div>
     <div style="text-align:center; margin-top:10px; font-size:0.85rem; color:var(--stone);">
-      صاحب الكوفي؟ <a href="login.html" style="color:var(--accent);">سجل دخولك من هنا</a>
+      Propriétaire d'un café ? <a href="login.html" style="color:var(--accent);">Connectez-vous ici</a>
     </div>
   </div>
 </div>
@@ -85,7 +85,7 @@ function staffLogin() {
   errorEl.textContent = '';
 
   if (!email || !password) {
-    errorEl.textContent = 'الرجاء إدخال البريد الإلكتروني وكلمة المرور.';
+    errorEl.textContent = "Veuillez entrer votre courriel et votre mot de passe.";
     return;
   }
 
@@ -93,7 +93,7 @@ function staffLogin() {
     .then(() => { window.location.href = 'dashboard.html'; })
     .catch(err => {
       console.error(err);
-      errorEl.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+      errorEl.textContent = "Courriel ou mot de passe incorrect.";
     });
 }
 
@@ -109,17 +109,17 @@ function forgotStaffPassword() {
   successEl.textContent = '';
 
   if (!email) {
-    errorEl.textContent = 'اكتب بريدك الإلكتروني بالخانة فوق أولاً، وبعدين اضغط "نسيت كلمة المرور".';
+    errorEl.textContent = "Entrez d'abord votre courriel ci-dessus, puis cliquez sur « Mot de passe oublié ».";
     return;
   }
 
   auth.sendPasswordResetEmail(email)
     .then(() => {
-      successEl.textContent = 'تم إرسال رابط إعادة تعيين كلمة المرور لبريدك الإلكتروني ✓';
+      successEl.textContent = "Un lien de réinitialisation a été envoyé à votre courriel ✓";
     })
     .catch(err => {
       console.error(err);
-      errorEl.textContent = 'تعذر إرسال رابط إعادة التعيين. تأكد من صحة البريد الإلكتروني.';
+      errorEl.textContent = "Impossible d'envoyer le lien de réinitialisation. Vérifiez votre adresse courriel.";
     });
 }
 </script>
