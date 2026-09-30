@@ -1,0 +1,3840 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cafeoman">
+<meta name="theme-color" content="#6B4226">
+<script src="pwa-install.js" defer></script>
+
+<title data-i18n="pageTitle">لوحة التحكم</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="printReceiptArea"></div>
+
+<div id="loadingMsg" class="state-msg" data-i18n="checkingLogin">جاري التحقق من تسجيل الدخول...</div>
+
+<div class="wrap" id="app" style="display:none; padding-bottom:80px;">
+
+  <div id="subscriptionBanner"></div>
+
+  <div class="top-bar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="logo-app.png" alt="Cafeoman.app" style="width:34px; height:34px; border-radius:9px; object-fit:cover; flex-shrink:0;">
+      <div class="shop-name display" id="shopNameHeader">لوحة التحكم</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="lang-toggle" id="dashLangToggle" onclick="toggleDashLang()" style="position:static; box-shadow:none; padding:6px 12px;">EN</button>
+      <div class="bell-wrap" onclick="switchTab('pos')">
+        🔔<span class="bell-badge" id="bellBadge" style="display:none;">0</span>
+      </div>
+      <button onclick="logout()" class="btn btn-ghost" style="padding:6px 14px; font-size:0.82rem;" data-i18n="logoutBtn">تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div id="noPermissionsScreen" class="state-msg" style="display:none; padding-top:60px;"></div>
+
+  <!-- ===================== TAB 1: لوحة التحكم (Menu + QR) ===================== -->
+  <div id="view-dashboard" class="tab-view active">
+
+    <div class="icon-subnav">
+      <button class="icon-subnav-btn" data-sub="qr" onclick="switchSubView('qr')">
+        <span class="icon-subnav-icon"><img src="icon-qr.png" alt=""></span>
+        <span class="icon-subnav-label" data-i18n="subQr">الباركود</span>
+      </button>
+      <button class="icon-subnav-btn" data-sub="add" onclick="switchSubView('add')">
+        <span class="icon-subnav-icon"><img src="icon-add.png" alt=""></span><span class="icon-subnav-label" data-i18n="subAdd">إضافة صنف</span>
+      </button>
+      <button class="icon-subnav-btn active" data-sub="list" onclick="switchSubView('list')">
+        <span class="icon-subnav-icon"><img src="icon-list.png" alt=""></span><span class="icon-subnav-label" data-i18n="subList">قائمة الأصناف</span>
+      </button>
+      <button class="icon-subnav-btn" data-sub="reservations" onclick="switchSubView('reservations')">
+        <span class="icon-subnav-icon"><img src="icon-reservations.png" alt=""></span><span class="icon-subnav-label" data-i18n="subReservations">الحجوزات</span>
+      </button>
+      <button class="icon-subnav-btn" data-sub="gifts" onclick="switchSubView('gifts')" style="position:relative;">
+        <span class="icon-subnav-icon">🎁</span><span class="bell-badge" id="giftsBadge" style="display:none; top:8px; left:8px;">0</span><span class="icon-subnav-label" data-i18n="subGifts">الهدايا</span>
+      </button>
+    </div>
+
+    <!-- Sub-view: QR -->
+    <div id="sub-qr" class="sub-view">
+      <div class="card" style="text-align:center;">
+        <h3 style="margin-bottom:12px;" data-i18n="qrTitle">باركود قائمتك</h3>
+        <canvas id="myQrCanvas"></canvas>
+        <div id="myMenuUrl" style="display:none;"></div>
+        <div id="copyLinkStatus" style="font-size:0.85rem; color:#3D6B4F; margin-top:8px;"></div>
+        <button class="btn btn-ghost" style="margin-top:12px;" onclick="copyMenuLink()" data-i18n="copyLinkBtn">📋 نسخ الرابط</button>
+        <button class="btn btn-ghost" style="margin-top:8px;" onclick="downloadMyQr()" data-i18n="downloadQr">تحميل الباركود</button>
+      </div>
+    </div>
+
+    <!-- Sub-view: Add item -->
+    <div id="sub-add" class="sub-view">
+      <div class="card">
+        <h3 style="margin-bottom:16px;" id="formTitle" data-i18n="addItemTitle">إضافة صنف جديد</h3>
+        <input type="hidden" id="itemId">
+
+        <div class="field">
+          <label for="itemName" data-i18n="itemNameAr">اسم الصنف (عربي)</label>
+          <input type="text" id="itemName" placeholder="مثال: لاتيه">
+        </div>
+
+        <div class="field">
+          <label for="itemNameEn" data-i18n="itemNameEnLbl">اسم الصنف (إنجليزي)</label>
+          <input type="text" id="itemNameEn" placeholder="e.g. Latte">
+        </div>
+
+        <div class="field">
+          <label for="itemCategory" data-i18n="itemCatAr">التصنيف (عربي)</label>
+          <input type="text" id="itemCategory" placeholder="مثال: مشروبات ساخنة">
+          <div id="categoryChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+        </div>
+
+        <div class="field">
+          <label for="itemCategoryEn" data-i18n="itemCatEn">التصنيف (إنجليزي)</label>
+          <input type="text" id="itemCategoryEn" placeholder="e.g. Hot Drinks">
+          <div id="categoryEnChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+        </div>
+
+        <div class="field">
+          <label for="itemDesc" data-i18n="itemDescLbl">الوصف (اختياري)</label>
+          <input type="text" id="itemDesc" placeholder="مثال: إسبريسو مع حليب مبخر">
+        </div>
+
+        <div class="field">
+          <label for="itemPrice" data-i18n="itemPriceLbl">السعر (ر.ع)</label>
+          <input type="number" step="0.01" id="itemPrice" placeholder="1.50">
+        </div>
+
+        <div class="field">
+          <label for="itemImage" data-i18n="itemImageLbl">صورة المنتج</label>
+          <input type="file" id="itemImage" accept="image/*">
+          <img id="itemImagePreview" src="" alt="" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; margin-top:8px; display:none;">
+          <div id="uploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
+        </div>
+
+        <div class="field" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="itemAvailable" checked style="width:auto;">
+          <label for="itemAvailable" style="margin:0;" data-i18n="itemAvailableLbl">متاح حالياً</label>
+        </div>
+
+        <div class="field" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="itemSuggested" style="width:auto;">
+          <label for="itemSuggested" style="margin:0;" data-i18n="itemSuggestedLbl">اقترحه كإضافة بالسلة</label>
+        </div>
+
+        <button class="btn" onclick="saveItem()" data-i18n="saveItemBtn">حفظ الصنف</button>
+        <button class="btn btn-ghost" onclick="resetForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+        <div id="formError" class="error-msg"></div>
+      </div>
+    </div>
+
+    <!-- Sub-view: Items list -->
+    <div id="sub-list" class="sub-view active">
+      <div class="card" id="itemsList">
+        <div class="state-msg">جاري التحميل...</div>
+      </div>
+
+      <h3 style="margin:24px 0 12px;" data-i18n="categoryManagerTitle">إدارة التصنيفات</h3>
+      <div class="card" id="categoryManagerList">
+        <div class="state-msg">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <!-- Sub-view: Reservations (rooms + incoming bookings) -->
+    <div id="sub-reservations" class="sub-view">
+      <div class="card">
+        <h3 style="margin-bottom:16px;" id="roomFormTitle" data-i18n="addRoomTitle">إضافة قاعة جديدة</h3>
+        <input type="hidden" id="roomId">
+
+        <div class="field">
+          <label for="roomName" data-i18n="roomNameLbl">اسم القاعة (عربي)</label>
+          <input type="text" id="roomName" placeholder="مثال: القاعة الخاصة">
+        </div>
+        <div class="field">
+          <label for="roomNameEn" data-i18n="roomNameEnLbl">اسم القاعة (إنجليزي)</label>
+          <input type="text" id="roomNameEn" placeholder="e.g. Private Room">
+        </div>
+        <div class="field">
+          <label for="roomCapacity" data-i18n="roomCapacityLbl">السعة (عدد الأشخاص)</label>
+          <input type="number" id="roomCapacity" min="1" placeholder="8">
+        </div>
+        <div class="field">
+          <label for="roomDesc" data-i18n="roomDescLbl">وصف مختصر (اختياري)</label>
+          <input type="text" id="roomDesc">
+        </div>
+
+        <button class="btn" onclick="saveRoom()" data-i18n="saveRoomBtn">حفظ القاعة</button>
+        <button class="btn btn-ghost" onclick="resetRoomForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+        <div id="roomFormError" class="error-msg"></div>
+      </div>
+
+      <h3 style="margin:20px 0 12px;" data-i18n="roomsListTitle">القاعات</h3>
+      <div class="card" id="roomsList">
+        <div class="state-msg">جاري التحميل...</div>
+      </div>
+
+      <h3 style="margin:28px 0 12px;" data-i18n="reservationsListTitle">الحجوزات الواردة</h3>
+      <div class="card" id="reservationsList">
+        <div class="state-msg">جاري التحميل...</div>
+      </div>
+    </div>
+
+    <div id="sub-gifts" class="sub-view">
+      <p style="color:var(--stone); font-size:0.85rem; margin-bottom:16px;" data-i18n="giftsIntro">
+        الهدايا اللي اشتراها عملاء لأصدقائهم وما تسلّمت بعد.
+      </p>
+      <div id="pendingGiftsList">
+        <div class="state-msg">جاري التحميل...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== TAB 2: نقطة البيع (POS) ===================== -->
+  <div id="view-pos" class="tab-view">
+    <button class="btn" style="width:100%; margin-bottom:20px;" onclick="openNewOrderModal()" data-i18n="newCounterOrderBtn">+ طلب جديد (كاونتر)</button>
+
+    <div class="pos-columns">
+      <div>
+        <div class="pos-column-title" data-i18n="colNew">جديد</div>
+        <div id="ordersColNew"><div class="state-msg">جاري التحميل...</div></div>
+      </div>
+      <div>
+        <div class="pos-column-title" data-i18n="colPreparing">قيد التحضير</div>
+        <div id="ordersColPreparing"><div class="state-msg">جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <button type="button" class="completed-orders-toggle" id="completedOrdersToggle" onclick="toggleCompletedOrders()">
+      <span data-i18n="completedOrdersTitle">الطلبات المكتملة</span>
+      <span id="completedOrdersChevron">▾</span>
+    </button>
+    <div id="completedOrdersList" style="display:none;"><div class="state-msg">جاري التحميل...</div></div>
+  </div>
+
+  <!-- ===================== TAB 3: المخزون (Inventory) ===================== -->
+  <div id="view-inventory" class="tab-view" style="padding-bottom:70px;">
+    <p style="color:var(--stone); font-size:0.85rem; margin-bottom:16px;">
+      <span data-i18n="inventoryIntro">حدد كمية المخزون لأي صنف تبي تتابعه. اتركه فاضي لو الكمية غير محدودة.</span>
+    </p>
+    <div class="card" id="inventoryList">
+      <div class="state-msg">جاري التحميل...</div>
+    </div>
+
+    <div class="inventory-floating-save">
+      <div id="inventorySaveStatus" style="font-size:0.8rem; color:#3D6B4F; text-align:center; margin-bottom:6px;"></div>
+      <button class="btn" style="width:100%;" onclick="saveAllInventory()">💾 <span data-i18n="saveChangesBtn">حفظ التغييرات</span></button>
+    </div>
+  </div>
+
+  <!-- ===================== TAB 4: المبيعات (Sales) ===================== -->
+  <div id="view-sales" class="tab-view">
+    <div class="range-tabs">
+      <button class="range-tab active" data-range="day" onclick="loadSales('day', this)" data-i18n="rangeDay">اليوم</button>
+      <button class="range-tab" data-range="week" onclick="loadSales('week', this)" data-i18n="rangeWeek">هذا الأسبوع</button>
+      <button class="range-tab" data-range="month" onclick="loadSales('month', this)" data-i18n="rangeMonth">هذا الشهر</button>
+    </div>
+
+    <div class="sales-summary">
+      <div class="sales-summary-box">
+        <span class="big-num" id="salesTotal">0.00</span>
+        <span class="label" data-i18n="totalSalesLbl">إجمالي المبيعات (ر.ع)</span>
+      </div>
+      <div class="sales-summary-box">
+        <span class="big-num" id="salesCount">0</span>
+        <span class="label" data-i18n="orderCountLbl">عدد الطلبات</span>
+      </div>
+      <div class="sales-summary-box">
+        <span class="big-num" id="avgRating">—</span>
+        <span class="label" data-i18n="avgRatingLbl">متوسط التقييم</span>
+      </div>
+    </div>
+
+    <h3 style="margin:0 0 12px;" data-i18n="paymentBreakdownTitle">حسب طريقة الدفع</h3>
+    <div class="card" id="paymentBreakdown">
+      <div class="state-msg">جاري التحميل...</div>
+    </div>
+
+    <h3 style="margin:0 0 12px;" data-i18n="staffBreakdownTitle">حسب البائع</h3>
+    <div class="card" id="staffBreakdown">
+      <div class="state-msg">جاري التحميل...</div>
+    </div>
+
+    <h3 style="margin:0 0 12px;" data-i18n="topSellingTitle">الأكثر مبيعاً</h3>
+    <div class="card" id="topItemsList">
+      <div class="state-msg">جاري التحميل...</div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:14px;" data-i18n="exportTitle">تصدير تقرير Excel</h3>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div class="field" style="margin:0; flex:1;">
+          <label for="exportFrom" data-i18n="fromDateLbl">من تاريخ</label>
+          <input type="date" id="exportFrom">
+        </div>
+        <div class="field" style="margin:0; flex:1;">
+          <label for="exportTo" data-i18n="toDateLbl">إلى تاريخ</label>
+          <input type="date" id="exportTo">
+        </div>
+      </div>
+      <div class="field">
+        <label for="exportLang" data-i18n="exportLangLbl">لغة الملف</label>
+        <select id="exportLang">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <button class="btn" style="width:100%;" onclick="exportSalesExcel()" data-i18n="exportBtn">📥 تصدير Excel</button>
+      <div id="exportError" class="error-msg"></div>
+      <div id="exportStatus" style="font-size:0.85rem; color:#3D6B4F; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ===================== TAB 5: الحساب (Account) ===================== -->
+  <div id="view-account" class="tab-view">
+
+    <div class="icon-subnav acc-icon-subnav">
+      <button class="acc-icon-subnav-btn" data-accsub="info" onclick="switchAccountSub('info')">
+        <span class="icon-subnav-icon">🏪</span><span class="icon-subnav-label" data-i18n="accSubInfo">معلومات الكوفي</span>
+      </button>
+      <button class="acc-icon-subnav-btn" data-accsub="payment" onclick="switchAccountSub('payment')">
+        <span class="icon-subnav-icon">💳</span><span class="icon-subnav-label" data-i18n="accSubPayment">طرق الدفع</span>
+      </button>
+      <button class="acc-icon-subnav-btn" data-accsub="loyalty" onclick="switchAccountSub('loyalty')">
+        <span class="icon-subnav-icon">🎁</span><span class="icon-subnav-label" data-i18n="accSubLoyalty">نقاط الولاء</span>
+      </button>
+      <button class="acc-icon-subnav-btn" data-accsub="ordertypes" onclick="switchAccountSub('ordertypes')">
+        <span class="icon-subnav-icon">📋</span><span class="icon-subnav-label" data-i18n="accSubOrderTypes">أنواع الطلب</span>
+      </button>
+      <button class="acc-icon-subnav-btn" data-accsub="staff" onclick="switchAccountSub('staff')">
+        <span class="icon-subnav-icon">👥</span><span class="icon-subnav-label" data-i18n="accSubStaff">الموظفين</span>
+      </button>
+      <button class="acc-icon-subnav-btn" data-accsub="session" onclick="switchAccountSub('session')">
+        <span class="icon-subnav-icon">🔑</span><span class="icon-subnav-label" data-i18n="accSubSession">الجلسة</span>
+      </button>
+    </div>
+
+    <div id="shopInfoError" class="error-msg"></div>
+    <div id="shopInfoSuccess" style="color:#3D6B4F; font-size:0.9rem; margin-bottom:10px;"></div>
+
+    <div id="acc-sub-info" class="acc-sub-view">
+    <div class="card">
+      <h3 style="margin-bottom:16px;" data-i18n="shopInfoTitle">معلومات الكوفي</h3>
+
+      <div class="field" style="display:flex; align-items:center; gap:14px;">
+        <img id="logoPreview" src="" alt="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; background:var(--paper-dim); display:none;">
+        <div style="flex:1;">
+          <label for="shopLogoInput" data-i18n="logoLbl">شعار الكوفي</label>
+          <input type="file" id="shopLogoInput" accept="image/*">
+          <div id="logoUploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="shopCoverInput" data-i18n="coverLbl">صورة الغلاف</label>
+        <input type="file" id="shopCoverInput" accept="image/*">
+        <img id="coverPreview" src="" alt="" style="width:100%; max-height:100px; object-fit:cover; border-radius:8px; margin-top:8px; display:none;">
+        <div id="coverUploadStatus" style="font-size:0.85rem; color:var(--stone); margin-top:6px;"></div>
+      </div>
+
+      <div class="field">
+        <label for="shopNameInput" data-i18n="shopNameArLbl">اسم المحل (عربي)</label>
+        <input type="text" id="shopNameInput">
+      </div>
+
+      <div class="field">
+        <label for="shopNameEnInput" data-i18n="shopNameEnLbl">اسم المحل (إنجليزي)</label>
+        <input type="text" id="shopNameEnInput" placeholder="e.g. Sarj Coffee">
+      </div>
+
+      <div class="field">
+        <label for="shopTaglineInput" data-i18n="taglineArLbl">شعار نصي قصير (عربي)</label>
+        <input type="text" id="shopTaglineInput">
+      </div>
+
+      <div class="field">
+        <label for="shopTaglineEnInput" data-i18n="taglineEnLbl">شعار نصي قصير (إنجليزي)</label>
+        <input type="text" id="shopTaglineEnInput" placeholder="e.g. The pleasure of the moment">
+      </div>
+
+      <div class="field">
+        <label for="shopLocationInput" data-i18n="locationLbl">الموقع</label>
+        <input type="text" id="shopLocationInput">
+      </div>
+
+      <div class="field">
+        <label data-i18n="hoursLbl">ساعات العمل</label>
+        <div id="weeklyHoursEditor" class="weekly-hours-editor"></div>
+      </div>
+
+      <div class="field">
+        <label for="shopPhoneInput" data-i18n="phoneLbl">رقم الهاتف</label>
+        <input type="tel" id="shopPhoneInput" placeholder="+968 9xxxxxxx">
+      </div>
+
+      <div class="field">
+        <label for="shopWhatsappInput" data-i18n="whatsappLbl">رقم الواتساب</label>
+        <input type="tel" id="shopWhatsappInput" placeholder="+968 9xxxxxxx">
+      </div>
+
+      <div class="field">
+        <label for="shopLocationLinkInput" data-i18n="locationLinkLbl">رابط الموقع (خرائط جوجل)</label>
+        <input type="text" id="shopLocationLinkInput" placeholder="https://maps.google.com/..." dir="ltr" style="text-align:left;">
+      </div>
+
+      <div class="field">
+        <label for="shopInstagramLinkInput" data-i18n="instagramLinkLbl">رابط انستقرام</label>
+        <input type="text" id="shopInstagramLinkInput" placeholder="https://instagram.com/..." dir="ltr" style="text-align:left;">
+      </div>
+
+      <div class="field">
+        <label for="shopEmailInput" data-i18n="emailLbl">البريد الإلكتروني</label>
+        <input type="email" id="shopEmailInput">
+      </div>
+
+      <div class="field">
+        <label for="shopColorInput" data-i18n="colorLbl">اللون المميز</label>
+        <input type="color" id="shopColorInput" style="width:80px; padding:4px;">
+      </div>
+
+      <div class="field">
+        <label for="shopPrepTimeInput" data-i18n="prepTimeLbl">الوقت التقريبي للتحضير (دقائق)</label>
+        <input type="number" id="shopPrepTimeInput" min="1">
+      </div>
+
+      <div class="field" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="showRatingPublicly" style="width:auto;">
+        <label for="showRatingPublicly" style="margin:0;" data-i18n="showRatingLbl">إظهار متوسط تقييمي للعملاء بالقائمة</label>
+      </div>
+
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+    </div>
+    </div>
+
+    <div id="acc-sub-payment" class="acc-sub-view">
+    <div class="card">
+      <h3 style="margin-bottom:16px;" data-i18n="accSubPayment">طرق الدفع</h3>
+
+      <div class="field">
+        <label data-i18n="paymentOptionsLbl">طرق الدفع المتاحة للعميل</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="payCashEnabled" style="width:auto;" checked>
+            <label for="payCashEnabled" style="margin:0;" data-i18n="payCash">💵 نقداً</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="payTransferEnabled" style="width:auto;" checked>
+            <label for="payTransferEnabled" style="margin:0;" data-i18n="payTransfer">🏦 تحويل بنكي</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="payCardEnabled" style="width:auto;" checked>
+            <label for="payCardEnabled" style="margin:0;" data-i18n="payCard">💳 فيزا / بطاقة</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="bankAccountNameInput" data-i18n="bankAccountNameLbl">اسم صاحب الحساب البنكي (بالإنجليزي فقط)</label>
+        <input type="text" id="bankAccountNameInput" placeholder="e.g. AHMED SAID" dir="ltr" style="text-align:left;">
+      </div>
+
+      <div class="field">
+        <label for="bankTransferNumberInput" data-i18n="bankTransferNumberLbl">رقم التحويل</label>
+        <div style="display:flex; gap:8px;">
+          <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+          <input type="text" inputmode="numeric" id="bankTransferNumberInput" placeholder="9xxxxxxx" style="flex:1;">
+        </div>
+      </div>
+
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+    </div>
+    </div>
+
+    <div id="acc-sub-loyalty" class="acc-sub-view">
+    <div class="card">
+      <h3 style="margin-bottom:16px;" data-i18n="accSubLoyalty">نقاط الولاء</h3>
+
+      <div class="field" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="loyaltyEnabled" style="width:auto;">
+        <label for="loyaltyEnabled" style="margin:0;" data-i18n="loyaltyEnabledLbl">تفعيل نظام نقاط الولاء</label>
+      </div>
+      <div id="loyaltySettingsFields" style="display:none;">
+        <div class="field">
+          <label for="loyaltyThreshold" data-i18n="loyaltyThresholdLbl">عدد الطلبات المطلوب للمكافأة</label>
+          <input type="number" id="loyaltyThreshold" min="2" value="6">
+        </div>
+        <div class="field">
+          <label for="loyaltyRewardText" data-i18n="loyaltyRewardTextLbl">نص المكافأة</label>
+          <input type="text" id="loyaltyRewardText" placeholder="مثال: قهوة مجانية">
+        </div>
+      </div>
+
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+    </div>
+
+    <h3 style="margin:24px 0 12px;" data-i18n="loyaltyCustomersTitle">نقاط عملاء الولاء</h3>
+    <div class="card" id="loyaltyCustomersList">
+      <div class="state-msg">جاري التحميل...</div>
+    </div>
+    </div>
+
+    <div id="acc-sub-ordertypes" class="acc-sub-view">
+    <div class="card">
+      <h3 style="margin-bottom:16px;" data-i18n="accSubOrderTypes">أنواع الطلب</h3>
+
+      <div class="field">
+        <label data-i18n="orderTypesLbl">أنواع الطلب المتاحة للعميل</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="orderTypeTableEnabled" style="width:auto;" checked>
+            <label for="orderTypeTableEnabled" style="margin:0;" data-i18n="orderFromTable">🍽️ طلب من الطاولة</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="orderTypeCarEnabled" style="width:auto;" checked>
+            <label for="orderTypeCarEnabled" style="margin:0;" data-i18n="orderFromCar">🚗 طلب من السيارة</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="orderTypeDeliveryEnabled" style="width:auto;">
+            <label for="orderTypeDeliveryEnabled" style="margin:0;" data-i18n="orderFromDelivery">🛵 طلب خارجي (توصيل)</label>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="saveShopInfo()" data-i18n="saveChangesBtn">حفظ التغييرات</button>
+    </div>
+    </div>
+
+    <div id="acc-sub-staff" class="acc-sub-view">
+    <!-- Staff management — visible only to the actual shop owner, never to an employee -->
+    <div class="card" id="employeesCard" style="display:none;">
+      <h3 style="margin-bottom:16px;" data-i18n="employeesTitle">الموظفين</h3>
+
+      <input type="hidden" id="empId">
+      <div class="field">
+        <label for="empName" data-i18n="empNameLbl">اسم الموظف</label>
+        <input type="text" id="empName" placeholder="مثال: أحمد">
+      </div>
+      <div class="field">
+        <label for="empEmail" data-i18n="empEmailLbl">البريد الإلكتروني</label>
+        <input type="email" id="empEmail" placeholder="employee@example.com">
+      </div>
+      <div class="field">
+        <label for="empPin" data-i18n="empPasswordLbl">كلمة المرور (6 أحرف على الأقل)</label>
+        <div style="display:flex; gap:6px;">
+          <input type="password" id="empPin" placeholder="••••••" style="flex:1;">
+          <button type="button" onclick="toggleEmpPwVisibility()" class="btn btn-ghost" style="padding:8px 12px;">👁️</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="empPermissionsLbl">الصلاحيات المسموحة</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="permDashboard" style="width:auto;">
+            <label for="permDashboard" style="margin:0;" data-i18n="navDashboard">لوحة التحكم</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="permPos" style="width:auto;">
+            <label for="permPos" style="margin:0;" data-i18n="navPos">نقطة البيع</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="permInventory" style="width:auto;">
+            <label for="permInventory" style="margin:0;" data-i18n="navInventory">المخزون</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="permSales" style="width:auto;">
+            <label for="permSales" style="margin:0;" data-i18n="navSales">المبيعات</label>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="permAccount" style="width:auto;">
+            <label for="permAccount" style="margin:0;" data-i18n="navAccount">الحساب</label>
+          </div>
+        </div>
+        <p style="color:var(--stone); font-size:0.78rem; margin-top:8px;" data-i18n="posPrintNote">صلاحية "نقطة البيع" تشمل تلقائياً إمكانية طباعة الفواتير.</p>
+      </div>
+
+      <button class="btn" onclick="saveEmployee()" id="saveEmpBtn" data-i18n="addEmployeeBtn">إضافة موظف</button>
+      <button class="btn btn-ghost" onclick="resetEmployeeForm()" style="margin-right:8px;" data-i18n="cancelBtn">إلغاء</button>
+      <div id="empFormError" class="error-msg"></div>
+
+      <h4 style="margin:20px 0 10px;" data-i18n="currentEmployeesTitle">الموظفين الحاليين</h4>
+      <div id="employeesList"><div class="state-msg">جاري التحميل...</div></div>
+    </div>
+    </div>
+
+    <div id="acc-sub-session" class="acc-sub-view">
+    <div class="card">
+      <div id="loggedInAsText" style="text-align:center; color:var(--stone); font-size:0.85rem; margin-bottom:14px;"></div>
+      <button class="btn btn-ghost" style="width:100%;" onclick="logout()" data-i18n="logoutBtn">تسجيل خروج</button>
+    </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===================== Bottom navigation ===================== -->
+<div class="bottom-nav" id="bottomNav" style="display:none;">
+  <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+    <span class="nav-icon">📋</span><span class="nav-label" data-i18n="navDashboard">لوحة التحكم</span>
+  </button>
+  <button class="nav-item" data-tab="pos" onclick="switchTab('pos')">
+    <span class="nav-icon">🧾</span><span class="nav-label" data-i18n="navPos">نقطة البيع</span>
+  </button>
+  <button class="nav-item" data-tab="inventory" onclick="switchTab('inventory')">
+    <span class="nav-icon">📦</span><span class="nav-label" data-i18n="navInventory">المخزون</span>
+  </button>
+  <button class="nav-item" data-tab="sales" onclick="switchTab('sales')">
+    <span class="nav-icon">📊</span><span class="nav-label" data-i18n="navSales">المبيعات</span>
+  </button>
+  <button class="nav-item" data-tab="account" onclick="switchTab('account')">
+    <span class="nav-icon">👤</span><span class="nav-label" data-i18n="navAccount">الحساب</span>
+  </button>
+</div>
+
+<script src="qrcode.min.js"></script>
+<script src="xlsx.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+// Fixes the "login screen flashes then disappears" issue when using the
+// phone/browser back button: browsers sometimes restore this page from a
+// cached snapshot (bfcache) instead of loading it fresh, and in that cached
+// snapshot Firebase hasn't re-confirmed the login state yet. Forcing one
+// clean reload in that specific case guarantees the auth check always runs
+// properly instead of briefly showing a wrong/stale screen.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
+
+let currentShopId = null;
+let currentUserEmail = null;
+let shopNameForReceipt = '';
+let cachedLoyaltyRewardText = '';
+let uploadedImageUrl = null;
+let uploadedLogoUrl = null;
+let uploadedCoverUrl = null;
+let isEmployee = false;
+let employeePermissions = null;
+const secondaryEmpApp = firebase.initializeApp(firebase.app().options, "SecondaryEmp");
+const secondaryEmpAuth = secondaryEmpApp.auth();
+
+// ===================== Auth guard =====================
+// Fires the moment this page's script runs, in parallel with auth
+// resolving — a throwaway public read whose only job is to open the
+// network connection to Firestore early. On a slow/distant connection,
+// establishing that channel is the single biggest cost of the very first
+// real read (checking if this account owns a shop); starting it here
+// means that first real read often finds the channel already warm.
+db.collection('categoryIcons').limit(1).get().catch(() => {});
+
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  const ownerShopDoc = await db.collection('shops').doc(user.uid).get();
+
+  if (ownerShopDoc.exists) {
+    // ============================================================
+    // EXISTING OWNER FLOW — completely unchanged from before.
+    // ============================================================
+    currentShopId = user.uid;
+    isEmployee = false;
+    employeePermissions = null;
+
+    const shopDoc = ownerShopDoc;
+    const info = shopDoc.exists ? (shopDoc.data().info || {}) : {};
+
+    // The email-verification gate only applies while the shop is still
+    // "pending" (self-signup, awaiting the automatic trial). If an admin has
+    // already manually activated (or suspended) the shop from admin.html,
+    // that decision overrides the requirement — the owner can log in right away.
+    if (info.selfSignup && info.subscriptionStatus === 'pending') {
+      // Refresh emailVerified status in case they just clicked the link in another tab
+      await user.reload();
+      if (!user.emailVerified) {
+        document.getElementById('loadingMsg').style.display = 'none';
+        showVerifyEmailScreen(user);
+        return;
+      }
+      await maybeActivateTrial();
+    }
+
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('employeesCard').style.display = 'block';
+    history.replaceState({ dashTab: 'dashboard' }, '', '#dashboard');
+    applyDashLang();
+    currentUserEmail = user.email;
+    document.getElementById('loggedInAsText').textContent = `${dt('loggedInAs')}: ${currentUserEmail}`;
+
+    await Promise.all([loadShopInfo(), loadItems()]);
+    loadCategoryManager();
+    listenToOrders();
+    listenToCompletedOrders();
+    updateBestSellerFlag();
+    updatePublicRatingStats();
+    loadLoyaltyCustomers();
+    loadEmployees();
+    listenToGiftCards();
+
+  } else {
+    // ============================================================
+    // NEW: employee flow. Only reached if this UID does NOT own a
+    // shop directly — never interferes with the owner path above.
+    // ============================================================
+    const idxDoc = await db.collection('employeeIndex').doc(user.uid).get().catch(() => null);
+    const shopIdForEmp = idxDoc && idxDoc.exists ? idxDoc.data().shopId : null;
+    const empDoc = shopIdForEmp
+      ? await db.collection('shops').doc(shopIdForEmp).collection('employees').doc(user.uid).get().catch(() => null)
+      : null;
+
+    if (!empDoc || !empDoc.exists) {
+      // Not a recognized owner or employee account — sign out safely.
+      await auth.signOut();
+      window.location.href = 'staff-login.html';
+      return;
+    }
+
+    currentShopId = shopIdForEmp;
+    isEmployee = true;
+    employeePermissions = empDoc.data().permissions || {};
+
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('employeesCard').style.display = 'none';
+    history.replaceState({ dashTab: 'dashboard' }, '', '#dashboard');
+    applyDashLang();
+    currentUserEmail = empDoc.data().name || '';
+    document.getElementById('loggedInAsText').textContent = `${dt('loggedInAs')}: ${currentUserEmail}`;
+
+    applyEmployeePermissionsUI();
+
+    await loadShopInfo();
+    loadLoyaltyCustomers();
+    if (employeePermissions.dashboard || employeePermissions.inventory) await loadItems();
+    if (employeePermissions.pos) listenToGiftCards();
+    loadCategoryManager();
+    if (employeePermissions.pos || employeePermissions.sales) {
+      listenToOrders();
+      listenToCompletedOrders();
+    }
+  }
+});
+
+// Hides bottom-nav tabs (and the icon-subnav is naturally inside the
+// "لوحة التحكم" tab, so hiding that whole tab covers it) that this
+// employee wasn't granted. Also jumps to their first allowed tab.
+function applyEmployeePermissionsUI() {
+  const tabPermMap = { dashboard: 'dashboard', pos: 'pos', inventory: 'inventory', sales: 'sales', account: 'account' };
+  let firstAllowed = null;
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    const tab = btn.getAttribute('data-tab');
+    // "لوحة التحكم" now also hosts the gifts feature, which only needs
+    // "نقطة البيع" access — so this ONE tab is visible with either
+    // permission, unlike the others which each need their own single permission.
+    const allowed = tab === 'dashboard'
+      ? (employeePermissions.dashboard === true || employeePermissions.pos === true)
+      : employeePermissions[tabPermMap[tab]] === true;
+    btn.style.display = allowed ? '' : 'none';
+    if (allowed && !firstAllowed) firstAllowed = tab;
+  });
+
+  // Within "لوحة التحكم" itself: the menu/QR/reservations tools still need
+  // real "dashboard" access. The gifts icon needs "نقطة البيع" specifically
+  // — matching the Firestore rule for redeeming a gift exactly, so nobody
+  // ever sees a delivery button that would actually fail when pressed.
+  const hasDashboardAccess = employeePermissions.dashboard === true;
+  const hasGiftAccess = employeePermissions.pos === true;
+  ['qr', 'add', 'list', 'reservations'].forEach(sub => {
+    const subBtn = document.querySelector(`.icon-subnav-btn[data-sub="${sub}"]`);
+    if (subBtn) subBtn.style.display = hasDashboardAccess ? '' : 'none';
+  });
+  const giftsSubBtn = document.querySelector('.icon-subnav-btn[data-sub="gifts"]');
+  if (giftsSubBtn) giftsSubBtn.style.display = hasGiftAccess ? '' : 'none';
+
+  // If they only have gift access in this tab (no real dashboard
+  // permission), land them on the gifts screen itself rather than the
+  // default "قائمة الأصناف" view they have no access to.
+  if (!hasDashboardAccess && hasGiftAccess) {
+    switchSubView('gifts');
+  }
+
+  if (!employeePermissions.dashboard && firstAllowed) {
+    switchTab(firstAllowed);
+  } else if (!firstAllowed) {
+    // Employee has no permissions at all — hide the tabs and bottom nav,
+    // show a clear message, but NEVER touch the top bar (that's where the
+    // logout button lives, and they still need a way to sign out).
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('noPermissionsScreen').textContent = dt('noPermissionsMsg');
+    document.getElementById('noPermissionsScreen').style.display = 'block';
+  }
+}
+
+function showVerifyEmailScreen(user) {
+  const wrap = document.createElement('div');
+  wrap.className = 'wrap';
+  wrap.style.maxWidth = '420px';
+  wrap.style.paddingTop = '50px';
+  wrap.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">📧</div>
+      <h3 style="margin-bottom:10px;">أكد بريدك الإلكتروني</h3>
+      <p style="color:var(--stone); font-size:0.9rem; margin-bottom:16px;">
+        أرسلنا رابط تأكيد إلى <strong>${user.email}</strong>. اضغط الرابط، وبعدين حدّث هذي الصفحة.
+      </p>
+      <p style="color:#B3441E; font-size:0.85rem; margin-bottom:16px;">
+        📩 لو ما لقيت الإيميل، تفقد مجلد "البريد غير المرغوب / Spam".
+      </p>
+      <button class="btn" onclick="location.reload()">تحققت — حدّث الصفحة</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="resendVerification()">إعادة إرسال الرابط</button>
+      <div id="resendMsg" style="font-size:0.85rem; color:#3D6B4F; margin-top:10px;"></div>
+      <button class="btn btn-ghost" style="margin-top:16px; width:100%;" onclick="logout()">تسجيل خروج</button>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+}
+
+function resendVerification() {
+  auth.currentUser.sendEmailVerification()
+    .then(() => { document.getElementById('resendMsg').textContent = 'تم إرسال الرابط مرة أخرى ✓'; })
+    .catch(err => { console.error(err); });
+}
+
+// One-time: activate a 14-day free trial the first time the owner logs in
+// with a verified email, if they haven't already had a trial or subscription.
+async function maybeActivateTrial() {
+  const doc = await db.collection('shops').doc(currentShopId).get();
+  if (!doc.exists) return;
+  const info = doc.data().info || {};
+
+  if (info.subscriptionStatus === 'pending' && !info.trialActivated) {
+    const end = new Date();
+    end.setDate(end.getDate() + 14);
+    const endStr = end.toISOString().split('T')[0];
+
+    await db.collection('shops').doc(currentShopId).update({
+      'info.subscriptionStatus': 'active',
+      'info.subscriptionEndDate': endStr,
+      'info.trialActivated': true
+    });
+  }
+}
+// ===================== Weekly opening hours (Google-style editor) =====================
+const weekDays = [
+  { key: 'sat', label: 'السبت', labelEn: 'Saturday' },
+  { key: 'sun', label: 'الأحد', labelEn: 'Sunday' },
+  { key: 'mon', label: 'الاثنين', labelEn: 'Monday' },
+  { key: 'tue', label: 'الثلاثاء', labelEn: 'Tuesday' },
+  { key: 'wed', label: 'الأربعاء', labelEn: 'Wednesday' },
+  { key: 'thu', label: 'الخميس', labelEn: 'Thursday' },
+  { key: 'fri', label: 'الجمعة', labelEn: 'Friday' }
+];
+
+function renderWeeklyHoursEditor(hoursData) {
+  const container = document.getElementById('weeklyHoursEditor');
+  container.innerHTML = weekDays.map(day => {
+    const d = hoursData[day.key] || { open: '08:00', close: '13:00', hasSecond: false, open2: '16:00', close2: '22:00', closed: false };
+    return `
+      <div class="hours-day-row">
+        <div class="hours-day-row-top">
+          <span class="hours-day-name">${dashLang === 'en' ? day.labelEn : day.label}</span>
+          <label class="hours-closed-label">
+            <input type="checkbox" id="closed-${day.key}" ${d.closed ? 'checked' : ''} onchange="toggleDayClosed('${day.key}')">
+            <span>${dt('closedLbl')}</span>
+          </label>
+        </div>
+
+        <div class="hours-ranges-wrap" id="rangesWrap-${day.key}" style="${d.closed ? 'display:none;' : ''}">
+          <div class="hours-time-range">
+            <input type="time" id="open-${day.key}" value="${d.open || '08:00'}">
+            <span>—</span>
+            <input type="time" id="close-${day.key}" value="${d.close || '13:00'}">
+          </div>
+
+          <div class="hours-time-range" id="range2-${day.key}" style="${d.hasSecond ? '' : 'display:none;'}">
+            <input type="time" id="open2-${day.key}" value="${d.open2 || '16:00'}">
+            <span>—</span>
+            <input type="time" id="close2-${day.key}" value="${d.close2 || '22:00'}">
+            <button type="button" class="hours-remove-range" onclick="removeSecondRange('${day.key}')">✕</button>
+          </div>
+
+          <button type="button" class="hours-add-range" id="addRangeBtn-${day.key}" style="${d.hasSecond ? 'display:none;' : ''}" onclick="addSecondRange('${day.key}')">
+            + ${dt('addSecondPeriod')}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleDayClosed(dayKey) {
+  const isClosed = document.getElementById(`closed-${dayKey}`).checked;
+  document.getElementById(`rangesWrap-${dayKey}`).style.display = isClosed ? 'none' : 'block';
+}
+
+function addSecondRange(dayKey) {
+  document.getElementById(`range2-${dayKey}`).style.display = 'flex';
+  document.getElementById(`addRangeBtn-${dayKey}`).style.display = 'none';
+}
+
+function removeSecondRange(dayKey) {
+  document.getElementById(`range2-${dayKey}`).style.display = 'none';
+  document.getElementById(`addRangeBtn-${dayKey}`).style.display = 'block';
+}
+
+function collectWeeklyHours() {
+  const hours = {};
+  weekDays.forEach(day => {
+    const closed = document.getElementById(`closed-${day.key}`).checked;
+    const hasSecond = document.getElementById(`range2-${day.key}`).style.display !== 'none';
+    hours[day.key] = {
+      closed,
+      open: document.getElementById(`open-${day.key}`).value || '08:00',
+      close: document.getElementById(`close-${day.key}`).value || '13:00',
+      hasSecond,
+      open2: document.getElementById(`open2-${day.key}`).value || '16:00',
+      close2: document.getElementById(`close2-${day.key}`).value || '22:00'
+    };
+  });
+  return hours;
+}
+
+function formatTime12h(time24) {
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'م' : 'ص';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function formatHoursForDisplay(hours) {
+  return weekDays.map(day => {
+    const d = hours[day.key];
+    if (!d || d.closed) return `${day.label}: مغلق`;
+    let line = `${day.label}: ${formatTime12h(d.open)} - ${formatTime12h(d.close)}`;
+    if (d.hasSecond) line += `، ${formatTime12h(d.open2)} - ${formatTime12h(d.close2)}`;
+    return line;
+  }).join('\n');
+}
+
+// ===================== Staff / employees management (owner only) =====================
+async function loadEmployees() {
+  const listEl = document.getElementById('employeesList');
+  const snap = await db.collection('shops').doc(currentShopId).collection('employees').get();
+
+  if (snap.empty) {
+    listEl.innerHTML = `<div class="state-msg">${dt('noEmployeesYet')}</div>`;
+    return;
+  }
+
+  const permLabels = { dashboard: dt('navDashboard'), pos: dt('navPos'), inventory: dt('navInventory'), sales: dt('navSales'), account: dt('navAccount') };
+
+  let html = '';
+  snap.forEach(doc => {
+    const e = doc.data();
+    const grantedList = Object.keys(permLabels).filter(k => e.permissions && e.permissions[k]).map(k => permLabels[k]).join('، ') || dt('noPermissionsShort');
+    html += `
+      <div class="dashboard-item">
+        <div class="grow">
+          <div class="item-name">${e.name || ''} — ${e.email || ''}</div>
+          <div class="item-desc">${grantedList}</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.85rem;" onclick='editEmployeePerms("${doc.id}")'>${dt('editBtn')}</button>
+        <button class="btn btn-danger" onclick='deleteEmployee("${doc.id}")'>${dt('deleteBtn')}</button>
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+function readPermsFromForm() {
+  return {
+    dashboard: document.getElementById('permDashboard').checked,
+    pos: document.getElementById('permPos').checked,
+    inventory: document.getElementById('permInventory').checked,
+    sales: document.getElementById('permSales').checked,
+    account: document.getElementById('permAccount').checked
+  };
+}
+
+function toggleEmpPwVisibility() {
+  const input = document.getElementById('empPin');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+async function saveEmployee() {
+  const errorEl = document.getElementById('empFormError');
+  errorEl.textContent = '';
+
+  const editingId = document.getElementById('empId').value;
+  const permissions = readPermsFromForm();
+
+  // ---- Editing an existing employee: only permissions/name can change here ----
+  if (editingId) {
+    const name = document.getElementById('empName').value.trim();
+    try {
+      await db.collection('shops').doc(currentShopId).collection('employees').doc(editingId).update({
+        name, permissions
+      });
+      resetEmployeeForm();
+      await loadEmployees();
+    } catch (err) {
+      console.error(err);
+      errorEl.textContent = dt('saveErrorGeneric');
+    }
+    return;
+  }
+
+  // ---- Creating a brand new employee ----
+  const name = document.getElementById('empName').value.trim();
+  const email = document.getElementById('empEmail').value.trim();
+  const pin = document.getElementById('empPin').value;
+
+  if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errorEl.textContent = dt('empInvalidFields');
+    return;
+  }
+  if (!pin || pin.length < 6) {
+    errorEl.textContent = dt('empPinTooShort');
+    return;
+  }
+  if (!permissions.dashboard && !permissions.pos && !permissions.inventory && !permissions.sales && !permissions.account) {
+    errorEl.textContent = dt('atLeastOnePermissionError');
+    return;
+  }
+
+  try {
+    // Create the employee's login using a SECONDARY app instance, so the
+    // owner's own session here is never touched or signed out.
+    const cred = await secondaryEmpAuth.createUserWithEmailAndPassword(email, pin);
+    const empUid = cred.user.uid;
+    await secondaryEmpAuth.signOut();
+
+    await db.collection('shops').doc(currentShopId).collection('employees').doc(empUid).set({
+      name, email, permissions,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('employeeIndex').doc(empUid).set({ shopId: currentShopId });
+
+    resetEmployeeForm();
+    await loadEmployees();
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'auth/email-already-in-use') {
+      errorEl.textContent = dt('empPhoneTaken');
+    } else {
+      errorEl.textContent = dt('saveErrorGeneric');
+    }
+  }
+}
+
+async function editEmployeePerms(empUid) {
+  const doc = await db.collection('shops').doc(currentShopId).collection('employees').doc(empUid).get();
+  if (!doc.exists) return;
+  const e = doc.data();
+
+  document.getElementById('empId').value = empUid;
+  document.getElementById('empName').value = e.name || '';
+  document.getElementById('empEmail').value = e.email || '';
+  document.getElementById('empEmail').disabled = true;
+  document.getElementById('empPin').disabled = true;
+  document.getElementById('empPin').placeholder = dt('pinLockedNote');
+
+  const p = e.permissions || {};
+  document.getElementById('permDashboard').checked = !!p.dashboard;
+  document.getElementById('permPos').checked = !!p.pos;
+  document.getElementById('permInventory').checked = !!p.inventory;
+  document.getElementById('permSales').checked = !!p.sales;
+  document.getElementById('permAccount').checked = !!p.account;
+
+  document.getElementById('saveEmpBtn').textContent = dt('saveChangesBtn');
+  window.scrollTo({ top: document.getElementById('employeesCard').offsetTop, behavior: 'smooth' });
+}
+
+async function deleteEmployee(empUid) {
+  if (!confirm(dt('confirmDeleteEmployee'))) return;
+  await db.collection('shops').doc(currentShopId).collection('employees').doc(empUid).delete();
+  await db.collection('employeeIndex').doc(empUid).delete().catch(() => {});
+  await loadEmployees();
+}
+
+function resetEmployeeForm() {
+  document.getElementById('empId').value = '';
+  document.getElementById('empName').value = '';
+  document.getElementById('empEmail').value = '';
+  document.getElementById('empEmail').disabled = false;
+  document.getElementById('empPin').value = '';
+  document.getElementById('empPin').disabled = false;
+  document.getElementById('empPin').placeholder = '••••••';
+  ['permDashboard', 'permPos', 'permInventory', 'permSales', 'permAccount'].forEach(id => {
+    document.getElementById(id).checked = false;
+  });
+  document.getElementById('saveEmpBtn').textContent = dt('addEmployeeBtn');
+  document.getElementById('empFormError').textContent = '';
+}
+
+function logout() {
+  auth.signOut().then(() => window.location.href = 'login.html');
+}
+
+// ===================== Dashboard language toggle (AR/EN) =====================
+let dashLang = localStorage.getItem('dashLang') || 'ar';
+
+const dashT = {
+  pageTitle: { ar: 'لوحة التحكم', en: 'Dashboard' },
+  checkingLogin: { ar: 'جاري التحقق من تسجيل الدخول...', en: 'Checking sign-in...' },
+  navDashboard: { ar: 'لوحة التحكم', en: 'Dashboard' },
+  navPos: { ar: 'نقطة البيع', en: 'POS' },
+  navInventory: { ar: 'المخزون', en: 'Inventory' },
+  navSales: { ar: 'المبيعات', en: 'Sales' },
+  navAccount: { ar: 'الحساب', en: 'Account' },
+  subQr: { ar: 'الباركود', en: 'QR Code' },
+  subAdd: { ar: 'إضافة صنف', en: 'Add Item' },
+  subList: { ar: 'قائمة الأصناف', en: 'Items' },
+  qrTitle: { ar: 'باركود قائمتك', en: 'Your menu QR code' },
+  downloadQr: { ar: 'تحميل الباركود', en: 'Download QR code' },
+  itemNameAr: { ar: 'اسم الصنف (عربي)', en: 'Item name (Arabic)' },
+  itemNameEnLbl: { ar: 'اسم الصنف (إنجليزي)', en: 'Item name (English)' },
+  itemCatAr: { ar: 'التصنيف (عربي)', en: 'Category (Arabic)' },
+  itemCatEn: { ar: 'التصنيف (إنجليزي)', en: 'Category (English)' },
+  itemDescLbl: { ar: 'الوصف (اختياري)', en: 'Description (optional)' },
+  itemPriceLbl: { ar: 'السعر (ر.ع)', en: 'Price (OMR)' },
+  itemImageLbl: { ar: 'صورة المنتج', en: 'Item photo' },
+  itemAvailableLbl: { ar: 'متاح حالياً', en: 'Currently available' },
+  saveItemBtn: { ar: 'حفظ الصنف', en: 'Save item' },
+  cancelBtn: { ar: 'إلغاء', en: 'Cancel' },
+  newCounterOrderBtn: { ar: '+ طلب جديد (كاونتر)', en: '+ New order (counter)' },
+  incomingOrdersTitle: { ar: 'الطلبات الواردة', en: 'Incoming orders' },
+  inventoryIntro: { ar: 'حدد كمية المخزون لأي صنف تبي تتابعه. اتركه فاضي لو الكمية غير محدودة.', en: 'Set a stock count for any item you want to track. Leave it blank for unlimited.' },
+  rangeDay: { ar: 'اليوم', en: 'Today' },
+  rangeWeek: { ar: 'هذا الأسبوع', en: 'This week' },
+  rangeMonth: { ar: 'هذا الشهر', en: 'This month' },
+  totalSalesLbl: { ar: 'إجمالي المبيعات (ر.ع)', en: 'Total sales (OMR)' },
+  orderCountLbl: { ar: 'عدد الطلبات', en: 'Number of orders' },
+  topSellingTitle: { ar: 'الأكثر مبيعاً', en: 'Top selling' },
+  shopInfoTitle: { ar: 'معلومات الكوفي', en: 'Shop info' },
+  accSubInfo: { ar: 'معلومات الكوفي', en: 'Shop info' },
+  accSubPayment: { ar: 'طرق الدفع', en: 'Payment' },
+  accSubLoyalty: { ar: 'نقاط الولاء', en: 'Loyalty' },
+  accSubOrderTypes: { ar: 'أنواع الطلب', en: 'Order types' },
+  accSubStaff: { ar: 'الموظفين', en: 'Staff' },
+  accSubSession: { ar: 'الجلسة', en: 'Session' },
+  logoLbl: { ar: 'شعار الكوفي', en: 'Shop logo' },
+  coverLbl: { ar: 'صورة الغلاف', en: 'Cover photo' },
+  shopNameArLbl: { ar: 'اسم المحل (عربي)', en: 'Shop name (Arabic)' },
+  shopNameEnLbl: { ar: 'اسم المحل (إنجليزي)', en: 'Shop name (English)' },
+  taglineArLbl: { ar: 'شعار نصي قصير (عربي)', en: 'Short tagline (Arabic)' },
+  taglineEnLbl: { ar: 'شعار نصي قصير (إنجليزي)', en: 'Short tagline (English)' },
+  locationLbl: { ar: 'الموقع', en: 'Location' },
+  phoneLbl: { ar: 'رقم الهاتف', en: 'Phone number' },
+  whatsappLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
+  locationLinkLbl: { ar: 'رابط الموقع (خرائط جوجل)', en: 'Location link (Google Maps)' },
+  instagramLinkLbl: { ar: 'رابط انستقرام', en: 'Instagram link' },
+  emailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
+  colorLbl: { ar: 'اللون المميز', en: 'Accent color' },
+  prepTimeLbl: { ar: 'الوقت التقريبي للتحضير (دقائق)', en: 'Estimated prep time (minutes)' },
+  showRatingLbl: { ar: 'إظهار متوسط تقييمي للعملاء بالقائمة', en: 'Show my average rating to customers on the menu' },
+  saveChangesBtn: { ar: 'حفظ التغييرات', en: 'Save changes' },
+  logoutBtn: { ar: 'تسجيل خروج', en: 'Log out' },
+  pressBackAgainToExit: { ar: 'اضغط رجوع مرة ثانية للخروج', en: 'Press back again to exit' },
+  loggedInAs: { ar: 'داخل بحساب', en: 'Logged in as' },
+  employeesTitle: { ar: 'الموظفين', en: 'Staff' },
+  empNameLbl: { ar: 'اسم الموظف', en: "Employee's name" },
+  empEmailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
+  empPasswordLbl: { ar: 'كلمة المرور (6 أحرف على الأقل)', en: 'Password (6 characters minimum)' },
+  empPermissionsLbl: { ar: 'الصلاحيات المسموحة', en: 'Allowed permissions' },
+  posPrintNote: { ar: 'صلاحية "نقطة البيع" تشمل تلقائياً إمكانية طباعة الفواتير.', en: 'The "POS" permission automatically includes the ability to print receipts.' },
+  addEmployeeBtn: { ar: 'إضافة موظف', en: 'Add employee' },
+  currentEmployeesTitle: { ar: 'الموظفين الحاليين', en: 'Current staff' },
+  noEmployeesYet: { ar: 'لا يوجد موظفين بعد.', en: 'No staff added yet.' },
+  noPermissionsShort: { ar: 'بدون صلاحيات', en: 'No permissions' },
+  empInvalidFields: { ar: 'أدخل اسم صحيح وبريد إلكتروني صحيح.', en: 'Enter a valid name and email address.' },
+  empPinTooShort: { ar: 'كلمة المرور لازم تكون 6 أحرف على الأقل.', en: 'Password must be at least 6 characters.' },
+  atLeastOnePermissionError: { ar: 'فعّل صلاحية واحدة على الأقل للموظف.', en: 'Enable at least one permission for this employee.' },
+  empPhoneTaken: { ar: 'هذا البريد الإلكتروني مستخدم مسبقاً لموظف آخر.', en: 'This email is already used by another employee.' },
+  pinLockedNote: { ar: '(ما يتغير من هنا)', en: '(cannot be changed here)' },
+  confirmDeleteEmployee: { ar: 'متأكد تبي تحذف هذا الموظف؟ بيفقد الوصول فوراً.', en: 'Are you sure you want to remove this employee? They will lose access immediately.' },
+  noPermissionsMsg: { ar: 'ما عندك أي صلاحية مفعّلة حالياً. تواصل مع صاحب الكوفي.', en: "You don't have any permissions enabled. Please contact the shop owner." },
+  loadingGeneric: { ar: 'جاري التحميل...', en: 'Loading...' },
+  noItemsYet: { ar: 'لا توجد أصناف بعد. أضف أول صنف بالأعلى.', en: 'No items yet. Add your first one above.' },
+  categoryManagerTitle: { ar: 'إدارة التصنيفات', en: 'Manage categories' },
+  noCategoriesYet: { ar: 'لا توجد تصنيفات بعد.', en: 'No categories yet.' },
+  itemsInCategoryWord: { ar: 'صنف', en: 'items' },
+  renameCategoryTitle: { ar: 'تعديل التصنيف', en: 'Edit category' },
+  confirmDeleteCategory: { ar: 'متأكد تبي تحذف هذا التصنيف؟ الأصناف بداخله بتصير بدون تصنيف، بس ما بتنحذف.', en: 'Delete this category? Its items will become uncategorized, but will NOT be deleted.' },
+  uncategorizedLabel: { ar: 'بدون تصنيف', en: 'Uncategorized' },
+  editBtn: { ar: 'تعديل', en: 'Edit' },
+  deleteBtn: { ar: 'حذف', en: 'Delete' },
+  hideBtn: { ar: 'إخفاء', en: 'Hide' },
+  showBtn: { ar: 'إظهار', en: 'Show' },
+  unavailableTag: { ar: 'غير متاح', en: 'unavailable' },
+  hiddenTag: { ar: 'مخفي عن الزبائن', en: 'hidden from customers' },
+  addItemTitle: { ar: 'إضافة صنف جديد', en: 'Add new item' },
+  editItemTitle: { ar: 'تعديل الصنف', en: 'Edit item' },
+  fillRequiredError: { ar: 'الرجاء تعبئة الاسم والتصنيف والسعر على الأقل.', en: 'Please fill in at least the name, category, and price.' },
+  saveErrorGeneric: { ar: 'حدث خطأ أثناء الحفظ. حاول مرة أخرى.', en: 'An error occurred while saving. Please try again.' },
+  confirmDeleteItem: { ar: 'متأكد تبي تحذف هذا الصنف؟', en: 'Are you sure you want to delete this item?' },
+  noOrdersYet: { ar: 'لا توجد طلبات حالياً.', en: 'No orders right now.' },
+  completedOrdersTitle: { ar: 'الطلبات المكتملة', en: 'Completed orders' },
+  noCompletedOrdersYet: { ar: 'لا توجد طلبات مكتملة بعد.', en: 'No completed orders yet.' },
+  printNowPrompt: { ar: 'هل تريد طباعة الفاتورة؟؟', en: 'Do you want to print the receipt?' },
+  printYesBtn: { ar: 'طباعة', en: 'Print' },
+  printCancelBtn: { ar: 'إلغاء', en: 'Cancel' },
+  ordersLoadError: { ar: 'تعذر تحميل الطلبات.', en: 'Could not load orders.' },
+  statusNew: { ar: 'جديد', en: 'New' },
+  statusPreparing: { ar: 'قيد التحضير', en: 'Preparing' },
+  statusReady: { ar: 'جاهز', en: 'Ready' },
+  startPreparingBtn: { ar: 'ابدأ التحضير', en: 'Start preparing' },
+  markReadyBtn: { ar: 'تم — جاهز', en: 'Done — ready' },
+  tableLabel: { ar: 'طاولة', en: 'Table' },
+  payCash: { ar: '💵 نقداً', en: '💵 Cash' },
+  payTransfer: { ar: '🏦 تحويل بنكي', en: '🏦 Bank transfer' },
+  payCard: { ar: '💳 فيزا / بطاقة', en: '💳 Visa / Card' },
+  paymentMethodLbl: { ar: 'طريقة الدفع', en: 'Payment method' },
+  printReceiptBtn: { ar: 'طباعة الفاتورة', en: 'Print receipt' },
+  viewReceiptBtn: { ar: 'عرض الوصل', en: 'View receipt' },
+  sendWhatsappBtn: { ar: 'واتساب', en: 'WhatsApp' },
+  waInvoiceItemsLabel: { ar: 'الأصناف', en: 'Items' },
+  waInvoiceThankYou: { ar: 'شكراً لطلبك ☕', en: 'Thank you for your order ☕' },
+  tapToOpenPrintPage: { ar: 'اضغط الزر تحت عشان تفتح صفحة الطباعة (بتفتح بمتصفح Safari)', en: 'Tap the button below to open the print page (it opens in Safari)' },
+  openPrintPageBtn: { ar: 'فتح صفحة الطباعة', en: 'Open print page' },
+  receiptTitle: { ar: 'فاتورة', en: 'Receipt' },
+  thankYouMsg: { ar: 'شكراً لزيارتكم ☕', en: 'Thank you for visiting ☕' },
+  paymentOptionsLbl: { ar: 'طرق الدفع المتاحة للعميل', en: 'Payment methods available to customers' },
+  orderTypesLbl: { ar: 'أنواع الطلب المتاحة للعميل', en: 'Order types available to customers' },
+  orderFromTable: { ar: '🍽️ طلب من الطاولة', en: '🍽️ Order from table' },
+  orderFromCar: { ar: '🚗 طلب من السيارة', en: '🚗 Order from car' },
+  orderFromDelivery: { ar: '🛵 طلب خارجي (توصيل)', en: '🛵 External order (delivery)' },
+  deliveryPhoneLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
+  deliveryMapsLbl: { ar: 'رابط موقعك على خرائط جوجل', en: 'Your Google Maps location link' },
+  deliveryMapsPlaceholder: { ar: 'https://maps.google.com/...', en: 'https://maps.google.com/...' },
+  deliveryWilayatLbl: { ar: 'الولاية', en: 'Wilayat' },
+  deliveryAreaLbl: { ar: 'المنطقة', en: 'Area' },
+  deliveryHouseNumberLbl: { ar: 'رقم البيت (اختياري)', en: 'House number (optional)' },
+  deliveryFieldsError: { ar: 'الرجاء تعبئة رقم الواتساب ورابط الموقع والولاية والمنطقة.', en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
+  openMapsBtn: { ar: 'فتح الموقع بالخريطة', en: 'Open location on map' },
+  houseNoShort: { ar: 'بيت', en: 'House' },
+  carNumberLbl: { ar: 'رقم السيارة', en: 'Car number' },
+  carColorLbl: { ar: 'لون السيارة', en: 'Car color' },
+  tableNumberLbl: { ar: 'رقم الطاولة', en: 'Table number' },
+  atLeastOnePaymentError: { ar: 'لازم تفعّل طريقة دفع واحدة على الأقل.', en: 'Please enable at least one payment method.' },
+  bankAccountNameLbl: { ar: 'اسم صاحب الحساب البنكي (بالإنجليزي فقط)', en: 'Bank account holder name (English only)' },
+  bankTransferNumberLbl: { ar: 'رقم التحويل', en: 'Transfer number' },
+  bankNameEnglishOnlyError: { ar: 'اسم صاحب الحساب لازم يكون بالإنجليزي بس (بدون حروف عربية).', en: 'The account holder name must be in English only (no Arabic characters).' },
+  bankDetailsRequiredError: { ar: 'أدخل اسم صاحب الحساب ورقم التحويل عشان تفعّل التحويل البنكي.', en: 'Enter the account holder name and transfer number to enable bank transfer.' },
+  loyaltyEnabledLbl: { ar: 'تفعيل نظام نقاط الولاء', en: 'Enable loyalty points program' },
+  loyaltyThresholdLbl: { ar: 'عدد الطلبات المطلوب للمكافأة', en: 'Orders required for a reward' },
+  loyaltyRewardTextLbl: { ar: 'نص المكافأة', en: 'Reward description' },
+  loyaltyCustomersTitle: { ar: 'نقاط عملاء الولاء', en: 'Loyalty customers' },
+  noLoyaltyCustomersYet: { ar: 'لا يوجد عملاء ولاء بعد.', en: 'No loyalty customers yet.' },
+  pointsWord: { ar: 'نقطة', en: 'points' },
+  resetPointsBtn: { ar: 'إعادة تعيين', en: 'Reset' },
+  confirmResetPoints: { ar: 'متأكد تبي تصفّر نقاط هذا العميل؟ (سوّها بعد ما تعطيه مكافأته)', en: "Reset this customer's points? (Do this after giving them their reward)" },
+  customerHasRewardBadge: { ar: 'هذا العميل عنده مكافأة جاهزة', en: 'This customer has a reward ready' },
+  newRewardOrderTitle: { ar: 'طلب مكافأة! 🎁', en: 'Reward order! 🎁' },
+  newRewardOrderMsg: { ar: 'وصلك طلب من عميل حقق نقاط الولاء — هذا الطلب يستاهل مكافأة مجانية.', en: 'You received an order from a customer who reached their loyalty points — this order deserves a free reward.' },
+  orderCancelledTitle: { ar: 'العميل ألغى الطلب', en: 'Customer cancelled the order' },
+  cancelOrderBtn: { ar: 'إلغاء الطلب', en: 'Cancel order' },
+  confirmStaffCancelOrder: { ar: 'متأكد تريد تلغي هذا الطلب؟', en: 'Are you sure you want to cancel this order?' },
+  yesCancelBtn: { ar: 'نعم، ألغِ الطلب', en: 'Yes, cancel it' },
+  noKeepBtn: { ar: 'تراجع', en: 'No, keep it' },
+  okBtn: { ar: 'حسناً', en: 'OK' },
+  atLeastOneOrderTypeError: { ar: 'لازم تفعّل نوع طلب واحد على الأقل.', en: 'Please enable at least one order type.' },
+  paymentBreakdownTitle: { ar: 'حسب طريقة الدفع', en: 'By payment method' },
+  staffBreakdownTitle: { ar: 'حسب البائع', en: 'By staff member' },
+  shopOwnerLabel: { ar: 'صاحب الكوفي', en: 'Shop owner' },
+  soldByLabel: { ar: 'بواسطة', en: 'By' },
+  giftPaidLabel: { ar: 'مدفوعة', en: 'Paid' },
+  noCounterSalesYet: { ar: 'لا توجد مبيعات كاونتر بهذي الفترة.', en: 'No counter sales in this period.' },
+  addOneItemError: { ar: 'أضف صنف واحد على الأقل.', en: 'Add at least one item.' },
+  orderSendErrorGeneric: { ar: 'حدث خطأ أثناء إرسال الطلب.', en: 'An error occurred while sending the order.' },
+  counterCustomer: { ar: 'عميل الكاونتر', en: 'Counter customer' },
+  newCounterOrderTitle: { ar: 'طلب جديد من الكاونتر', en: 'New counter order' },
+  customerNameOptional: { ar: 'اسم العميل (اختياري)', en: 'Customer name (optional)' },
+  addFirstItemsHint: { ar: 'أضف أصناف بالقائمة أولاً من تبويب "لوحة التحكم".', en: 'Add items to your menu first from the Dashboard tab.' },
+  lowStockWarning: { ar: '⚠️ كمية منخفضة', en: '⚠️ Low stock' },
+  outOfStockLabel: { ar: '🚫 نفذت الكمية', en: '🚫 Out of stock' },
+  outOfStockError: { ar: 'نفذت الكمية من', en: 'Out of stock' },
+  sendingOrderLoading: { ar: '⏳ جاري الإرسال...', en: '⏳ Sending...' },
+  savingInventory: { ar: 'جاري الحفظ...', en: 'Saving...' },
+  unlimitedPlaceholder: { ar: 'غير محدود', en: 'Unlimited' },
+  noSalesPeriod: { ar: 'لا توجد مبيعات بهذي الفترة.', en: 'No sales in this period.' },
+  salesUnit: { ar: 'مبيعات', en: 'sold' },
+  qrLibraryError: { ar: 'مكتبة QR ما تحمّلت من الإنترنت', en: 'QR library failed to load' },
+  qrGenerationFailed: { ar: 'تعذر توليد الباركود', en: 'Could not generate QR code' },
+  logoUploading: { ar: 'جاري تجهيز ورفع الشعار...', en: 'Preparing and uploading logo...' },
+  logoUploaded: { ar: 'تم رفع الشعار ✓ — لا تنسى تضغط "حفظ التغييرات"', en: 'Logo uploaded ✓ — don\'t forget to click "Save changes"' },
+  logoUploadFailed: { ar: 'فشل رفع الشعار، حاول مرة أخرى.', en: 'Logo upload failed, please try again.' },
+  coverUploading: { ar: 'جاري تجهيز ورفع صورة الغلاف...', en: 'Preparing and uploading cover photo...' },
+  coverUploaded: { ar: 'تم رفع الغلاف ✓ — لا تنسى تضغط "حفظ التغييرات"', en: 'Cover uploaded ✓ — don\'t forget to click "Save changes"' },
+  coverUploadFailed: { ar: 'فشل رفع الغلاف، حاول مرة أخرى.', en: 'Cover upload failed, please try again.' },
+  itemImageUploading: { ar: 'جاري تجهيز ورفع الصورة...', en: 'Preparing and uploading photo...' },
+  itemImageUploaded: { ar: 'تم رفع الصورة ✓', en: 'Photo uploaded ✓' },
+  itemImageUploadFailed: { ar: 'فشل رفع الصورة، حاول مرة أخرى.', en: 'Photo upload failed, please try again.' },
+  shopNameRequiredError: { ar: 'اسم الكوفي مطلوب.', en: 'Shop name is required.' },
+  savedSuccess: { ar: 'تم الحفظ ✓', en: 'Saved ✓' },
+  currency: { ar: 'ر.ع', en: 'OMR' },
+  colNew: { ar: 'جديد', en: 'New' },
+  colPreparing: { ar: 'قيد التحضير', en: 'Preparing' },
+  justNow: { ar: 'الآن', en: 'just now' },
+  minutesAgo: { ar: 'دقيقة مضت', en: 'min ago' },
+  downloadTentBtn: { ar: 'تحميل تصميم الطاولة', en: 'Download table tent' },
+  shareLinkTitle: { ar: 'رابط قائمتك', en: 'Your menu link' },
+  shareLinkHint: { ar: 'انسخ هذا الرابط وضيفه ببايو انستقرام، تويتر، أو أي حساب سوشيال ميديا', en: 'Copy this link and add it to your Instagram bio, Twitter, or any social account' },
+  copyLinkBtn: { ar: '📋 نسخ الرابط', en: '📋 Copy link' },
+  copiedMsg: { ar: 'تم نسخ الرابط ✓', en: 'Link copied ✓' },
+  copyFailedMsg: { ar: 'تعذر النسخ، انسخه يدوياً من الأعلى', en: 'Could not copy — please copy it manually above' },
+  scanAndOrder: { ar: 'امسح واطلب', en: 'Scan & Order' },
+  exportTitle: { ar: 'تصدير تقرير Excel', en: 'Export Excel report' },
+  exportLangLbl: { ar: 'لغة الملف', en: 'File language' },
+  fromDateLbl: { ar: 'من تاريخ', en: 'From date' },
+  toDateLbl: { ar: 'إلى تاريخ', en: 'To date' },
+  exportBtn: { ar: '📥 تصدير Excel', en: '📥 Export Excel' },
+  exportDatesRequired: { ar: 'اختر تاريخ البداية والنهاية.', en: 'Please choose both a start and end date.' },
+  exportDateOrderError: { ar: 'تاريخ البداية لازم يكون قبل تاريخ النهاية.', en: 'Start date must be before end date.' },
+  exportLibError: { ar: 'مكتبة Excel ما تحمّلت.', en: 'Excel library failed to load.' },
+  exportPreparing: { ar: 'جاري تجهيز الملف...', en: 'Preparing the file...' },
+  exportDone: { ar: 'تم تحميل الملف ✓', en: 'File downloaded ✓' },
+  exportGenericError: { ar: 'حدث خطأ أثناء التصدير', en: 'An error occurred while exporting' },
+  hoursLbl: { ar: 'ساعات العمل', en: 'Opening hours' },
+  subReservations: { ar: 'الحجوزات', en: 'Reservations' },
+  subGifts: { ar: 'الهدايا', en: 'Gifts' },
+  giftsIntro: { ar: 'الهدايا اللي اشتراها عملاء لأصدقائهم وما تسلّمت بعد.', en: "Gifts customers bought for friends that haven't been picked up yet." },
+  noPendingGifts: { ar: 'لا توجد هدايا حالياً.', en: 'No pending gifts right now.' },
+  deliverGiftBtn: { ar: 'تسليم الهدية', en: 'Deliver gift' },
+  giftWelcomeLine1: { ar: 'مرحباً..', en: 'Hello..' },
+  giftWelcomeLine2: { ar: 'صديق أحب يهديك هدية', en: 'A friend wanted to gift you something' },
+  giftWelcomeLine3: { ar: 'تفضل استلمها', en: 'Please come pick it up from' },
+  giftWelcomeLine4: { ar: 'بامكانك تستلمها بأي وقت يناسبك', en: 'You can pick it up whenever suits you' },
+  addRoomTitle: { ar: 'إضافة قاعة جديدة', en: 'Add new room' },
+  editRoomTitle: { ar: 'تعديل القاعة', en: 'Edit room' },
+  roomNameLbl: { ar: 'اسم القاعة (عربي)', en: 'Room name (Arabic)' },
+  roomNameEnLbl: { ar: 'اسم القاعة (إنجليزي)', en: 'Room name (English)' },
+  roomCapacityLbl: { ar: 'السعة (عدد الأشخاص)', en: 'Capacity (people)' },
+  roomDescLbl: { ar: 'وصف مختصر (اختياري)', en: 'Short description (optional)' },
+  saveRoomBtn: { ar: 'حفظ القاعة', en: 'Save room' },
+  roomsListTitle: { ar: 'القاعات', en: 'Rooms' },
+  reservationsListTitle: { ar: 'الحجوزات الواردة', en: 'Incoming reservations' },
+  noRoomsYet: { ar: 'لا توجد قاعات بعد. أضف أول قاعة بالأعلى.', en: 'No rooms yet. Add your first one above.' },
+  noReservationsYet: { ar: 'لا توجد حجوزات حالياً.', en: 'No reservations right now.' },
+  capacityWord: { ar: 'السعة', en: 'Capacity' },
+  guestsWord: { ar: 'أشخاص', en: 'guests' },
+  roomNameRequired: { ar: 'اسم القاعة مطلوب.', en: 'Room name is required.' },
+  confirmDeleteRoom: { ar: 'متأكد تبي تحذف هذي القاعة؟', en: 'Are you sure you want to delete this room?' },
+  cancelReservationBtn: { ar: 'إلغاء الحجز', en: 'Cancel reservation' },
+  confirmCancelReservation: { ar: 'متأكد تبي تلغي هذا الحجز؟', en: 'Are you sure you want to cancel this reservation?' },
+  closedLbl: { ar: 'مغلق', en: 'Closed' },
+  addSecondPeriod: { ar: 'إضافة فترة ثانية', en: 'Add second period' },
+  itemSuggestedLbl: { ar: 'اقترحه كإضافة بالسلة', en: 'Suggest as a cart add-on' },
+  avgRatingLbl: { ar: 'متوسط التقييم', en: 'Average rating' }
+};
+
+function dt(key) {
+  return (dashT[key] && dashT[key][dashLang]) || key;
+}
+
+// ===== Car color translation (typed freely by the customer in Arabic or
+// English) — translates common color words so staff always understand it
+// regardless of which language their dashboard is set to. =====
+const carColorDict = [
+  ['أحمر', 'Red'], ['احمر', 'Red'],
+  ['أزرق', 'Blue'], ['ازرق', 'Blue'],
+  ['أبيض', 'White'], ['ابيض', 'White'],
+  ['أسود', 'Black'], ['اسود', 'Black'],
+  ['رمادي', 'Gray'], ['رصاصي', 'Gray'],
+  ['أخضر', 'Green'], ['اخضر', 'Green'],
+  ['أصفر', 'Yellow'], ['اصفر', 'Yellow'],
+  ['بني', 'Brown'],
+  ['فضي', 'Silver'],
+  ['ذهبي', 'Gold'],
+  ['بنفسجي', 'Purple'],
+  ['برتقالي', 'Orange'],
+  ['وردي', 'Pink'], ['زهري', 'Pink'],
+  ['كحلي', 'Navy Blue'],
+  ['بيج', 'Beige']
+];
+
+function translateCarColor(text) {
+  if (!text) return text;
+  const trimmed = text.trim();
+
+  if (dashLang === 'en') {
+    const hit = carColorDict.find(([ar]) => trimmed === ar || trimmed.includes(ar));
+    return hit ? hit[1] : text;
+  } else {
+    const hit = carColorDict.find(([, en]) => trimmed.toLowerCase() === en.toLowerCase());
+    return hit ? hit[0] : text;
+  }
+}
+
+function applyDashLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = dt(key);
+  });
+  document.getElementById('dashLangToggle').textContent = dashLang === 'ar' ? 'EN' : 'عربي';
+  document.documentElement.dir = dashLang === 'ar' ? 'rtl' : 'ltr';
+  if (currentUserEmail) {
+    document.getElementById('loggedInAsText').textContent = `${dt('loggedInAs')}: ${currentUserEmail}`;
+  }
+}
+
+function toggleDashLang() {
+  dashLang = dashLang === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('dashLang', dashLang);
+  applyDashLang();
+
+  // Close the counter-order popup if it's open — its content was drawn once
+  // at open time and won't update live, so the cleanest fix is to have the
+  // owner/employee reopen it fresh in the new language.
+  const posOverlay = document.getElementById('posOverlay');
+  if (posOverlay) posOverlay.remove();
+
+  // Re-render dynamic lists so they pick up the new language too
+  loadItems();
+  loadCategoryManager();
+  if (ordersUnsub) ordersUnsub();
+  listenToOrders();
+  renderCompletedOrders();
+  if (document.getElementById('view-inventory').classList.contains('active')) loadInventory();
+  if (document.getElementById('view-sales').classList.contains('active')) {
+    loadSales('day', document.querySelector('.range-tab[data-range="day"]'));
+  }
+
+  // Re-render the hours editor with the SAME values the owner already has
+  // on screen (collected first, not re-fetched) — just relabels days/buttons
+  // into the new language without discarding any unsaved edits.
+  const hoursContainer = document.getElementById('weeklyHoursEditor');
+  if (hoursContainer && hoursContainer.children.length > 0) {
+    renderWeeklyHoursEditor(collectWeeklyHours());
+  }
+}
+
+// ===================== Image resize helper =====================
+// Standardizes any uploaded photo (whatever its original size/shape) into a
+// consistent, web-friendly size before upload — keeps things fast and uniform
+// regardless of what the owner's phone camera produces.
+function resizeImage(file, maxDimension = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+
+    img.onload = () => {
+      let { width, height } = img;
+
+      if (width > height && width > maxDimension) {
+        height = Math.round(height * (maxDimension / width));
+        width = maxDimension;
+      } else if (height > maxDimension) {
+        width = Math.round(width * (maxDimension / height));
+        height = maxDimension;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('فشل تجهيز الصورة')),
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = reject;
+
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===================== Tab switching =====================
+// Makes the phone/browser back button move between dashboard tabs instead
+// of exiting the app. On the main "لوحة التحكم" tab specifically, pressing
+// back once shows a warning instead of leaving; pressing it again within
+// 2 seconds actually logs out — the familiar "press back again to exit"
+// pattern from mobile apps.
+let lastBackPressTime = 0;
+
+window.addEventListener('popstate', (event) => {
+  const tab = event.state && event.state.dashTab;
+
+  if (tab) {
+    switchTab(tab, true);
+    return;
+  }
+
+  // No tracked tab in this history entry — the person has gone back past
+  // our main tab, i.e. they're trying to exit.
+  const now = Date.now();
+  if (now - lastBackPressTime < 2000) {
+    logout();
+    return;
+  }
+  lastBackPressTime = now;
+
+  // Trap the back button at this same depth (replaceState, not pushState,
+  // so the stack doesn't grow) and warn the person to press back again.
+  history.replaceState({ dashTab: 'dashboard' }, '', '#dashboard');
+  switchTab('dashboard', true);
+  showExitToast();
+});
+
+function showExitToast() {
+  const existing = document.getElementById('exitToast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'exitToast';
+  toast.textContent = dt('pressBackAgainToExit');
+  toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:rgba(36,27,21,0.9); color:white; padding:10px 20px; border-radius:999px; font-size:0.85rem; z-index:999; white-space:nowrap;';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+function switchTab(name, fromPopState) {
+  // Defense in depth: even if a hidden nav button were somehow triggered,
+  // an employee can never switch into a tab they weren't granted. The
+  // "لوحة التحكم" tab is the one exception — it also hosts the gifts
+  // feature, which only needs "نقطة البيع" access.
+  if (isEmployee && employeePermissions) {
+    const tabAllowed = name === 'dashboard'
+      ? (employeePermissions.dashboard === true || employeePermissions.pos === true)
+      : employeePermissions[name] === true;
+    if (!tabAllowed) return;
+  }
+
+  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  document.querySelector(`.nav-item[data-tab="${name}"]`).classList.add('active');
+
+  activeTab = name;
+
+  // Record this tab switch as a real browser history step (unless we got
+  // here FROM the back/forward button itself) so pressing "back" moves
+  // between tabs instead of exiting the app entirely.
+  if (!fromPopState) {
+    history.pushState({ dashTab: name }, '', '#' + name);
+  }
+
+  if (name === 'pos') {
+    requestWakeLock();
+  } else if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+
+  if (name === 'inventory') loadInventory();
+  if (name === 'sales') loadSales('day', document.querySelector('.range-tab[data-range="day"]'));
+}
+
+// ===================== Sub-view switching (inside "لوحة التحكم") =====================
+function switchSubView(name) {
+  document.querySelectorAll('.sub-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.icon-subnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`sub-${name}`).classList.add('active');
+  document.querySelector(`.icon-subnav-btn[data-sub="${name}"]`).classList.add('active');
+
+  if (name === 'reservations') {
+    loadRooms();
+    loadReservations();
+  }
+}
+
+// Completely separate from switchSubView above — uses its own class names
+// (.acc-sub-view / .acc-icon-subnav-btn) so the two subnavs never interfere
+// with each other's active-button state, regardless of which tab is open.
+function switchAccountSub(name) {
+  document.querySelectorAll('.acc-sub-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.acc-icon-subnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`acc-sub-${name}`).classList.add('active');
+  document.querySelector(`.acc-icon-subnav-btn[data-accsub="${name}"]`).classList.add('active');
+}
+
+// ===================== Sound alert system: "ding-ding" x3 =====================
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(ctx, freq, startTime, duration) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.28, startTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+function playAlertSound() {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  const toneDur = 0.14;
+  let t = now;
+  for (let rep = 0; rep < 3; rep++) {
+    playTone(ctx, 1046, t, toneDur);
+    t += toneDur + 0.06;
+    playTone(ctx, 1046, t, toneDur);
+    t += toneDur + 0.4;
+  }
+}
+function playCancelSound() {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  playTone(ctx, 440, now, 0.18);
+  playTone(ctx, 294, now + 0.2, 0.32);
+}
+
+document.addEventListener('click', function unlockAudioOnce() {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  document.removeEventListener('click', unlockAudioOnce);
+}, { once: true });
+
+// ===================== TAB 1: Shop info + QR + Menu items =====================
+async function loadShopInfo() {
+  const doc = await db.collection('shops').doc(currentShopId).get();
+  if (doc.exists) {
+    const info = doc.data().info || {};
+    document.getElementById('shopNameHeader').textContent = info.name || 'لوحة التحكم';
+    shopNameForReceipt = info.name || '';
+
+    document.getElementById('shopNameInput').value = info.name || '';
+    document.getElementById('shopNameEnInput').value = info.nameEn || '';
+    document.getElementById('shopTaglineInput').value = info.tagline || '';
+    document.getElementById('shopTaglineEnInput').value = info.taglineEn || '';
+    document.getElementById('shopLocationInput').value = info.location || '';
+    renderWeeklyHoursEditor(info.hours || {});
+    document.getElementById('shopPhoneInput').value = info.phone || '';
+    document.getElementById('shopWhatsappInput').value = info.whatsapp || '';
+    document.getElementById('shopLocationLinkInput').value = info.locationLink || '';
+    document.getElementById('shopInstagramLinkInput').value = info.instagramLink || '';
+    document.getElementById('shopEmailInput').value = info.email || '';
+    document.getElementById('shopColorInput').value = info.primaryColor || '#8B5A2B';
+    document.getElementById('shopPrepTimeInput').value = info.estimatedMinutes || 10;
+    document.getElementById('showRatingPublicly').checked = info.showRatingPublicly === true;
+
+    const pm = info.paymentMethods || {};
+    document.getElementById('payCashEnabled').checked = pm.cash !== false;
+    document.getElementById('payTransferEnabled').checked = pm.transfer !== false;
+    document.getElementById('payCardEnabled').checked = pm.card !== false;
+
+    document.getElementById('bankAccountNameInput').value = info.bankAccountName || '';
+    document.getElementById('bankTransferNumberInput').value = (info.bankTransferNumber || '').replace('+968', '').trim();
+
+    document.getElementById('loyaltyEnabled').checked = info.loyaltyEnabled === true;
+    document.getElementById('loyaltySettingsFields').style.display = info.loyaltyEnabled === true ? 'block' : 'none';
+    document.getElementById('loyaltyThreshold').value = info.loyaltyThreshold || 6;
+    document.getElementById('loyaltyRewardText').value = info.loyaltyRewardText || '';
+    cachedLoyaltyRewardText = info.loyaltyRewardText || '';
+
+    const ot = info.orderTypes || {};
+    document.getElementById('orderTypeTableEnabled').checked = ot.table !== false;
+    document.getElementById('orderTypeCarEnabled').checked = ot.car !== false;
+    document.getElementById('orderTypeDeliveryEnabled').checked = ot.delivery === true;
+
+    renderSubscriptionBanner(info);
+
+    if (info.logo) {
+      const preview = document.getElementById('logoPreview');
+      preview.src = info.logo;
+      preview.style.display = 'block';
+      uploadedLogoUrl = info.logo;
+    }
+    if (info.coverImage) {
+      const coverPrev = document.getElementById('coverPreview');
+      coverPrev.src = info.coverImage;
+      coverPrev.style.display = 'block';
+      uploadedCoverUrl = info.coverImage;
+    }
+
+    const menuUrl = window.location.origin + window.location.pathname.replace('dashboard.html', '') + 'menu.html?shop=' + currentShopId;
+    document.getElementById('myMenuUrl').textContent = menuUrl;
+    try {
+      if (typeof QRCode === 'undefined') throw new Error('مكتبة QR ما تحمّلت من الإنترنت');
+      await QRCode.toCanvas(document.getElementById('myQrCanvas'), menuUrl, { width: 180 });
+    } catch (qrErr) {
+      console.error('QR generation failed:', qrErr);
+      document.getElementById('myMenuUrl').insertAdjacentHTML('afterend', `<div class="error-msg">${dt('qrGenerationFailed')}: ${qrErr.message}</div>`);
+    }
+  }
+}
+
+function renderSubscriptionBanner(info) {
+  const bannerEl = document.getElementById('subscriptionBanner');
+  const isManuallyActive = info.subscriptionStatus === 'active';
+
+  if (!isManuallyActive) {
+    bannerEl.innerHTML = `
+      <div class="sub-banner sub-banner-danger">
+        ⚠️ حسابك موقوف حالياً — قائمتك غير ظاهرة للعملاء.
+        ${info.suspensionReason ? `<br>السبب: ${info.suspensionReason}` : ''}
+      </div>
+    `;
+    return;
+  }
+
+  if (info.subscriptionEndDate) {
+    const end = new Date(info.subscriptionEndDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const daysLeft = Math.round((end - today) / (1000 * 60 * 60 * 24));
+
+    if (daysLeft < 0) {
+      bannerEl.innerHTML = `
+        <div class="sub-banner sub-banner-danger">
+          ⚠️ انتهى اشتراكك بتاريخ ${info.subscriptionEndDate} — قائمتك غير ظاهرة للعملاء حالياً. تواصل معنا للتجديد.
+        </div>
+      `;
+      return;
+    }
+
+    if (daysLeft <= 3) {
+      const daysText = daysLeft === 0 ? 'اليوم' : (daysLeft === 1 ? 'يوم واحد' : `${daysLeft} أيام`);
+      bannerEl.innerHTML = `
+        <div class="sub-banner sub-banner-warning">
+          ⏰ اشتراكك سينتهي خلال ${daysText}. تواصل معنا للتجديد.
+        </div>
+      `;
+      return;
+    }
+  }
+
+  bannerEl.innerHTML = '';
+}
+
+async function copyMenuLink() {
+  const url = document.getElementById('myMenuUrl').textContent;
+  const statusEl = document.getElementById('copyLinkStatus');
+
+  try {
+    await navigator.clipboard.writeText(url);
+    statusEl.textContent = dt('copiedMsg');
+  } catch (err) {
+    // Fallback for browsers/contexts that block the Clipboard API
+    const tempInput = document.createElement('textarea');
+    tempInput.value = url;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    try {
+      document.execCommand('copy');
+      statusEl.textContent = dt('copiedMsg');
+    } catch (e) {
+      statusEl.textContent = dt('copyFailedMsg');
+    }
+    document.body.removeChild(tempInput);
+  }
+
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+function downloadMyQr() {
+  const canvas = document.getElementById('myQrCanvas');
+  const link = document.createElement('a');
+  link.download = 'qr-code.png';
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+// Generates a printable "table tent" card: logo + shop name + QR + caption,
+// composited onto a single downloadable image sized for standard printing.
+async function downloadTableTent() {
+  const doc = await db.collection('shops').doc(currentShopId).get();
+  const info = doc.exists ? (doc.data().info || {}) : {};
+  const menuUrl = document.getElementById('myMenuUrl').textContent;
+  const accent = info.primaryColor || '#8B5A2B';
+
+  const W = 1000, H = 1500;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#FAF6EF';
+  ctx.fillRect(0, 0, W, H);
+
+  // Top accent band
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, W, 90);
+
+  // Logo (best-effort — skipped silently if it can't be loaded due to CORS)
+  let logoBottom = 220;
+  if (info.logo) {
+    try {
+      const logoImg = await loadImageSafe(info.logo);
+      const size = 220;
+      const x = (W - size) / 2;
+      const y = 140;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(logoImg, x, y, size, size);
+      ctx.restore();
+      logoBottom = y + size + 40;
+    } catch (e) {
+      console.error('Logo could not be drawn on table tent:', e);
+    }
+  }
+
+  // Shop name
+  ctx.fillStyle = '#241B15';
+  ctx.textAlign = 'center';
+  ctx.font = '700 54px Georgia, serif';
+  ctx.fillText(info.name || '', W / 2, logoBottom + 20);
+
+  // Tagline
+  let nextY = logoBottom + 70;
+  if (info.tagline) {
+    ctx.fillStyle = '#8A7A68';
+    ctx.font = '28px Arial';
+    ctx.fillText(info.tagline, W / 2, nextY);
+    nextY += 50;
+  }
+
+  // QR code (drawn from the already-rendered on-page canvas — no CORS issue, same origin)
+  const qrSize = 460;
+  const qrSourceCanvas = document.getElementById('myQrCanvas');
+  const qrX = (W - qrSize) / 2;
+  const qrY = nextY + 30;
+  ctx.fillStyle = 'white';
+  ctx.fillRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40);
+  ctx.strokeStyle = '#E4D9C6';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40);
+  ctx.drawImage(qrSourceCanvas, qrX, qrY, qrSize, qrSize);
+
+  // Caption
+  ctx.fillStyle = '#241B15';
+  ctx.font = '700 40px Arial';
+  ctx.fillText(dt('scanAndOrder'), W / 2, qrY + qrSize + 70);
+
+  ctx.fillStyle = '#8A7A68';
+  ctx.font = '22px Arial';
+  ctx.fillText(menuUrl, W / 2, qrY + qrSize + 110);
+
+  const link = document.createElement('a');
+  link.download = 'table-tent.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function loadImageSafe(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// ===================== Storage cleanup helper =====================
+// Deletes a previously uploaded file (by its download URL) — best-effort,
+// so a failed delete never blocks the new upload from completing.
+async function deleteOldImage(url) {
+  if (!url) return;
+  try {
+    await storage.refFromURL(url).delete();
+  } catch (err) {
+    console.error('Old image cleanup failed (non-blocking):', err);
+  }
+}
+
+document.getElementById('shopLogoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('logoUploadStatus');
+  statusEl.textContent = dt('logoUploading');
+  try {
+    const oldUrl = uploadedLogoUrl;
+    let uploadBlob = file;
+    try {
+      uploadBlob = await resizeImage(file, 500, 0.85);
+    } catch (resizeErr) {
+      console.error('Resize failed, uploading original file instead:', resizeErr);
+    }
+    const path = `shops/${currentShopId}/logo_${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+    await ref.put(uploadBlob);
+    uploadedLogoUrl = await ref.getDownloadURL();
+    deleteOldImage(oldUrl);
+    const preview = document.getElementById('logoPreview');
+    preview.src = uploadedLogoUrl;
+    preview.style.display = 'block';
+    statusEl.textContent = 'تم رفع الشعار ✓ — لا تنسى تضغط "حفظ التغييرات"';
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = dt('logoUploadFailed');
+  }
+});
+
+document.getElementById('shopCoverInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('coverUploadStatus');
+  statusEl.textContent = dt('coverUploading');
+  try {
+    const oldUrl = uploadedCoverUrl;
+    let uploadBlob = file;
+    try {
+      uploadBlob = await resizeImage(file, 1200, 0.82);
+    } catch (resizeErr) {
+      console.error('Resize failed, uploading original file instead:', resizeErr);
+    }
+    const path = `shops/${currentShopId}/cover_${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+    await ref.put(uploadBlob);
+    uploadedCoverUrl = await ref.getDownloadURL();
+    deleteOldImage(oldUrl);
+    const preview = document.getElementById('coverPreview');
+    preview.src = uploadedCoverUrl;
+    preview.style.display = 'block';
+    statusEl.textContent = 'تم رفع الغلاف ✓ — لا تنسى تضغط "حفظ التغييرات"';
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = dt('coverUploadFailed');
+  }
+});
+
+// ===================== Loyalty points customer management =====================
+async function loadLoyaltyCustomers() {
+  const el = document.getElementById('loyaltyCustomersList');
+  if (!el) return;
+
+  const snap = await db.collection('shops').doc(currentShopId).collection('loyaltyCustomers')
+    .orderBy('points', 'desc').limit(50).get();
+
+  if (snap.empty) {
+    el.innerHTML = `<div class="state-msg">${dt('noLoyaltyCustomersYet')}</div>`;
+    return;
+  }
+
+  el.innerHTML = snap.docs.map(doc => {
+    const d = doc.data();
+    const points = d.points || 0;
+    return `
+      <div class="dashboard-item">
+        <div class="grow">
+          <div class="item-name">${doc.id}</div>
+          <div class="item-desc">${points} ${dt('pointsWord')}</div>
+        </div>
+        <button class="btn btn-ghost" onclick='resetLoyaltyPoints("${doc.id}")'>${dt('resetPointsBtn')}</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function resetLoyaltyPoints(phone) {
+  if (!confirm(dt('confirmResetPoints'))) return;
+  await db.collection('shops').doc(currentShopId).collection('loyaltyCustomers').doc(phone).update({ points: 0 });
+  await loadLoyaltyCustomers();
+}
+
+document.getElementById('loyaltyEnabled').addEventListener('change', function () {
+  document.getElementById('loyaltySettingsFields').style.display = this.checked ? 'block' : 'none';
+});
+
+async function saveShopInfo() {
+  const errorEl = document.getElementById('shopInfoError');
+  const successEl = document.getElementById('shopInfoSuccess');
+  errorEl.textContent = '';
+  successEl.textContent = '';
+
+  const name = document.getElementById('shopNameInput').value.trim();
+  const nameEn = document.getElementById('shopNameEnInput').value.trim();
+  const tagline = document.getElementById('shopTaglineInput').value.trim();
+  const taglineEn = document.getElementById('shopTaglineEnInput').value.trim();
+  const location = document.getElementById('shopLocationInput').value.trim();
+  const hours = collectWeeklyHours();
+  const phone = document.getElementById('shopPhoneInput').value.trim();
+  const whatsapp = document.getElementById('shopWhatsappInput').value.trim();
+  const locationLink = document.getElementById('shopLocationLinkInput').value.trim();
+  const instagramLink = document.getElementById('shopInstagramLinkInput').value.trim();
+  const email = document.getElementById('shopEmailInput').value.trim();
+  const color = document.getElementById('shopColorInput').value;
+  const prepTime = parseInt(document.getElementById('shopPrepTimeInput').value) || 10;
+  const showRatingPublicly = document.getElementById('showRatingPublicly').checked;
+
+  const paymentMethods = {
+    cash: document.getElementById('payCashEnabled').checked,
+    transfer: document.getElementById('payTransferEnabled').checked,
+    card: document.getElementById('payCardEnabled').checked
+  };
+  const orderTypes = {
+    table: document.getElementById('orderTypeTableEnabled').checked,
+    car: document.getElementById('orderTypeCarEnabled').checked,
+    delivery: document.getElementById('orderTypeDeliveryEnabled').checked
+  };
+  const bankAccountName = document.getElementById('bankAccountNameInput').value.trim();
+  const bankTransferNumberDigits = document.getElementById('bankTransferNumberInput').value.trim();
+  const bankTransferNumber = bankTransferNumberDigits ? `+968 ${bankTransferNumberDigits}` : '';
+  const loyaltyEnabled = document.getElementById('loyaltyEnabled').checked;
+  const loyaltyThreshold = parseInt(document.getElementById('loyaltyThreshold').value) || 6;
+  const loyaltyRewardText = document.getElementById('loyaltyRewardText').value.trim();
+
+  if (!paymentMethods.cash && !paymentMethods.transfer && !paymentMethods.card) {
+    errorEl.textContent = dt('atLeastOnePaymentError');
+    return;
+  }
+  if (!orderTypes.table && !orderTypes.car && !orderTypes.delivery) {
+    errorEl.textContent = dt('atLeastOneOrderTypeError');
+    return;
+  }
+
+  // English letters, digits, spaces and basic punctuation only — no Arabic
+  // characters allowed in the bank account holder name.
+  if (bankAccountName && /[\u0600-\u06FF]/.test(bankAccountName)) {
+    errorEl.textContent = dt('bankNameEnglishOnlyError');
+    return;
+  }
+  if (paymentMethods.transfer && (!bankAccountName || !bankTransferNumber)) {
+    errorEl.textContent = dt('bankDetailsRequiredError');
+    return;
+  }
+
+  if (!name) {
+    errorEl.textContent = dt('shopNameRequiredError');
+    return;
+  }
+
+  try {
+    const updateData = {
+      'info.name': name,
+      'info.nameEn': nameEn,
+      'info.tagline': tagline,
+      'info.taglineEn': taglineEn,
+      'info.location': location,
+      'info.hours': hours,
+      'info.openingHours': formatHoursForDisplay(hours),
+      'info.phone': phone,
+      'info.whatsapp': whatsapp,
+      'info.locationLink': locationLink,
+      'info.instagramLink': instagramLink,
+      'info.email': email,
+      'info.primaryColor': color,
+      'info.estimatedMinutes': prepTime,
+      'info.showRatingPublicly': showRatingPublicly,
+      'info.paymentMethods': paymentMethods,
+      'info.orderTypes': orderTypes,
+      'info.bankAccountName': bankAccountName,
+      'info.bankTransferNumber': bankTransferNumber,
+      'info.loyaltyEnabled': loyaltyEnabled,
+      'info.loyaltyThreshold': loyaltyThreshold,
+      'info.loyaltyRewardText': loyaltyRewardText
+    };
+    if (uploadedLogoUrl) updateData['info.logo'] = uploadedLogoUrl;
+    if (uploadedCoverUrl) updateData['info.coverImage'] = uploadedCoverUrl;
+
+    await db.collection('shops').doc(currentShopId).update(updateData);
+    document.getElementById('shopNameHeader').textContent = name;
+    successEl.textContent = dt('savedSuccess');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = dt('saveErrorGeneric');
+  }
+}
+
+function renderCategoryChips(containerId, inputId, categories) {
+  const container = document.getElementById(containerId);
+  if (categories.size === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = Array.from(categories).map(cat => `
+    <button type="button" class="category-chip" onclick="document.getElementById('${inputId}').value = this.textContent">${cat}</button>
+  `).join('');
+}
+
+// ===================== Rooms & Reservations =====================
+async function loadRooms() {
+  const listEl = document.getElementById('roomsList');
+  const snap = await db.collection('shops').doc(currentShopId).collection('rooms').get();
+
+  if (snap.empty) {
+    listEl.innerHTML = `<div class="state-msg">${dt('noRoomsYet')}</div>`;
+    return;
+  }
+
+  let html = '';
+  snap.forEach(doc => {
+    const r = doc.data();
+    html += `
+      <div class="dashboard-item">
+        <div class="grow">
+          <div class="item-name">${r.name}${r.nameEn ? ' / ' + r.nameEn : ''}</div>
+          <div class="item-desc">${dt('capacityWord')}: ${r.capacity || '-'}${r.description ? ' · ' + r.description : ''}</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.85rem;" onclick='editRoom("${doc.id}")'>${dt('editBtn')}</button>
+        <button class="btn btn-danger" onclick='deleteRoom("${doc.id}")'>${dt('deleteBtn')}</button>
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+async function saveRoom() {
+  const errorEl = document.getElementById('roomFormError');
+  errorEl.textContent = '';
+
+  const id = document.getElementById('roomId').value;
+  const name = document.getElementById('roomName').value.trim();
+  const nameEn = document.getElementById('roomNameEn').value.trim();
+  const capacity = parseInt(document.getElementById('roomCapacity').value) || null;
+  const description = document.getElementById('roomDesc').value.trim();
+
+  if (!name) {
+    errorEl.textContent = dt('roomNameRequired');
+    return;
+  }
+
+  const roomData = { name, nameEn, capacity, description };
+
+  try {
+    const roomsRef = db.collection('shops').doc(currentShopId).collection('rooms');
+    if (id) {
+      await roomsRef.doc(id).update(roomData);
+    } else {
+      await roomsRef.add(roomData);
+    }
+    resetRoomForm();
+    await loadRooms();
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = dt('saveErrorGeneric');
+  }
+}
+
+async function editRoom(id) {
+  const doc = await db.collection('shops').doc(currentShopId).collection('rooms').doc(id).get();
+  if (!doc.exists) return;
+  const r = doc.data();
+
+  document.getElementById('roomId').value = id;
+  document.getElementById('roomName').value = r.name || '';
+  document.getElementById('roomNameEn').value = r.nameEn || '';
+  document.getElementById('roomCapacity').value = r.capacity || '';
+  document.getElementById('roomDesc').value = r.description || '';
+  document.getElementById('roomFormTitle').textContent = dt('editRoomTitle');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function deleteRoom(id) {
+  if (!confirm(dt('confirmDeleteRoom'))) return;
+  await db.collection('shops').doc(currentShopId).collection('rooms').doc(id).delete();
+  await loadRooms();
+}
+
+function resetRoomForm() {
+  document.getElementById('roomId').value = '';
+  document.getElementById('roomName').value = '';
+  document.getElementById('roomNameEn').value = '';
+  document.getElementById('roomCapacity').value = '';
+  document.getElementById('roomDesc').value = '';
+  document.getElementById('roomFormTitle').textContent = dt('addRoomTitle');
+  document.getElementById('roomFormError').textContent = '';
+}
+
+async function loadReservations() {
+  const listEl = document.getElementById('reservationsList');
+  const snap = await db.collection('shops').doc(currentShopId).collection('reservations')
+    .orderBy('date', 'asc').get();
+
+  if (snap.empty) {
+    listEl.innerHTML = `<div class="state-msg">${dt('noReservationsYet')}</div>`;
+    return;
+  }
+
+  let html = '';
+  snap.forEach(doc => {
+    const r = doc.data();
+    html += `
+      <div class="order-card">
+        <div class="order-card-top">
+          <strong>${r.roomName} — ${r.date} ${r.time}</strong>
+        </div>
+        <div class="order-items-line">${r.customerName} · ${r.phone} · ${r.guests} ${dt('guestsWord')}</div>
+        ${r.notes ? `<div class="order-items-line" style="font-style:italic;">📝 ${r.notes}</div>` : ''}
+        <div class="order-actions">
+          <button class="btn btn-danger" onclick='cancelReservation("${doc.id}", "${r.roomId}", "${r.date}", "${r.time}")'>${dt('cancelReservationBtn')}</button>
+        </div>
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+async function cancelReservation(resId, roomId, date, time) {
+  if (!confirm(dt('confirmCancelReservation'))) return;
+  const slotId = `${roomId}_${date}_${time}`;
+  await db.collection('shops').doc(currentShopId).collection('reservations').doc(resId).delete();
+  await db.collection('shops').doc(currentShopId).collection('bookedSlots').doc(slotId).delete().catch(() => {});
+  await loadReservations();
+}
+
+// ===================== Category management (independent from loadItems) =====================
+// Runs its own fetch so it never has to touch/modify loadItems() above.
+async function loadCategoryManager() {
+  const el = document.getElementById('categoryManagerList');
+  if (!el) return;
+
+  const snap = await db.collection('shops').doc(currentShopId).collection('menu').get();
+  const categories = {}; // { arName: { en: '', count: 0 } }
+
+  snap.forEach(doc => {
+    const item = doc.data();
+    if (!item.category) return;
+    if (!categories[item.category]) categories[item.category] = { en: item.categoryEn || '', count: 0 };
+    categories[item.category].count++;
+  });
+
+  const names = Object.keys(categories);
+  if (names.length === 0) {
+    el.innerHTML = `<div class="state-msg">${dt('noCategoriesYet')}</div>`;
+    return;
+  }
+
+  el.innerHTML = names.map(name => `
+    <div class="dashboard-item">
+      <div class="grow">
+        <div class="item-name">${name}${categories[name].en ? ' / ' + categories[name].en : ''}</div>
+        <div class="item-desc">${categories[name].count} ${dt('itemsInCategoryWord')}</div>
+      </div>
+      <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.85rem;" onclick='openRenameCategoryModal("${escapeStrJs(name)}", "${escapeStrJs(categories[name].en)}")'>${dt('editBtn')}</button>
+      <button class="btn btn-danger" onclick='deleteCategoryConfirm("${escapeStrJs(name)}")'>${dt('deleteBtn')}</button>
+    </div>
+  `).join('');
+}
+
+function escapeStrJs(str) {
+  return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function openRenameCategoryModal(oldName, oldNameEn) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'renameCategoryOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('renameCategoryOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 16px;">${dt('renameCategoryTitle')}</h3>
+      <div class="field">
+        <label>${dt('itemCatAr')}</label>
+        <input type="text" id="renameCatArInput" value="${oldName.replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>${dt('itemCatEn')}</label>
+        <input type="text" id="renameCatEnInput" value="${(oldNameEn || '').replace(/"/g, '&quot;')}">
+      </div>
+      <button class="btn" style="width:100%;" onclick='saveRenamedCategory("${escapeStrJs(oldName)}")'>${dt('saveChangesBtn')}</button>
+      <div id="renameCategoryError" class="error-msg"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function saveRenamedCategory(oldName) {
+  const errorEl = document.getElementById('renameCategoryError');
+  const newName = document.getElementById('renameCatArInput').value.trim();
+  const newNameEn = document.getElementById('renameCatEnInput').value.trim();
+
+  if (!newName) {
+    errorEl.textContent = dt('roomNameRequired');
+    return;
+  }
+
+  try {
+    const snap = await db.collection('shops').doc(currentShopId).collection('menu')
+      .where('category', '==', oldName).get();
+
+    const batch = db.batch();
+    snap.forEach(doc => {
+      batch.update(doc.ref, { category: newName, categoryEn: newNameEn });
+    });
+    await batch.commit();
+
+    document.getElementById('renameCategoryOverlay').remove();
+    await loadCategoryManager();
+    await loadItems();
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = dt('saveErrorGeneric');
+  }
+}
+
+async function deleteCategoryConfirm(name) {
+  if (!confirm(dt('confirmDeleteCategory'))) return;
+
+  const snap = await db.collection('shops').doc(currentShopId).collection('menu')
+    .where('category', '==', name).get();
+
+  const batch = db.batch();
+  snap.forEach(doc => {
+    batch.update(doc.ref, {
+      category: dt('uncategorizedLabel'),
+      categoryEn: firebase.firestore.FieldValue.delete()
+    });
+  });
+  await batch.commit();
+
+  await loadCategoryManager();
+  await loadItems();
+}
+
+async function loadItems() {
+  const listEl = document.getElementById('itemsList');
+  const snap = await db.collection('shops').doc(currentShopId).collection('menu').orderBy('category').get();
+
+  // Collect distinct categories used so far, to power the suggestion chips
+  const categoriesAr = new Set();
+  const categoriesEn = new Set();
+  snap.forEach(doc => {
+    const item = doc.data();
+    if (item.category) categoriesAr.add(item.category);
+    if (item.categoryEn) categoriesEn.add(item.categoryEn);
+  });
+  renderCategoryChips('categoryChips', 'itemCategory', categoriesAr);
+  renderCategoryChips('categoryEnChips', 'itemCategoryEn', categoriesEn);
+
+  if (snap.empty) {
+    listEl.innerHTML = `<div class="state-msg">${dt('noItemsYet')}</div>`;
+    return;
+  }
+
+  let html = '';
+  snap.forEach(doc => {
+    const item = doc.data();
+    const isHidden = item.hidden === true;
+    const displayName = (dashLang === 'en' && item.nameEn) ? item.nameEn : item.name;
+    const displayCategory = (dashLang === 'en' && item.categoryEn) ? item.categoryEn : item.category;
+    html += `
+      <div class="dashboard-item ${isHidden ? 'item-hidden' : ''}">
+        ${item.image ? `<img src="${item.image}">` : '<div class="item-photo"></div>'}
+        <div class="grow">
+          <div class="item-name">${displayName} — ${Number(item.price).toFixed(2)} ${dt('currency')}</div>
+          <div class="item-desc">${displayCategory}${item.available === false ? ' · ' + dt('unavailableTag') : ''}${isHidden ? ' · ' + dt('hiddenTag') : ''}</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:6px 10px; font-size:0.8rem;" onclick='toggleHidden("${doc.id}", ${isHidden})'>${isHidden ? dt('showBtn') : dt('hideBtn')}</button>
+        <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.85rem;" onclick='editItem("${doc.id}")'>${dt('editBtn')}</button>
+        <button class="btn btn-danger" onclick='deleteItem("${doc.id}")'>${dt('deleteBtn')}</button>
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+async function toggleHidden(id, currentlyHidden) {
+  await db.collection('shops').doc(currentShopId).collection('menu').doc(id).update({ hidden: !currentlyHidden });
+  await loadItems();
+    loadCategoryManager();
+}
+
+document.getElementById('itemImage').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = dt('itemImageUploading');
+  try {
+    const oldUrl = uploadedImageUrl;
+    let uploadBlob = file;
+    try {
+      uploadBlob = await resizeImage(file, 900, 0.82);
+    } catch (resizeErr) {
+      console.error('Resize failed, uploading original file instead:', resizeErr);
+    }
+    const path = `shops/${currentShopId}/${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+    await ref.put(uploadBlob);
+    uploadedImageUrl = await ref.getDownloadURL();
+    deleteOldImage(oldUrl);
+
+    const preview = document.getElementById('itemImagePreview');
+    preview.src = uploadedImageUrl;
+    preview.style.display = 'block';
+    statusEl.textContent = 'تم رفع الصورة ✓';
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = dt('itemImageUploadFailed');
+  }
+});
+
+async function saveItem() {
+  const errorEl = document.getElementById('formError');
+  errorEl.textContent = '';
+
+  const id = document.getElementById('itemId').value;
+  const name = document.getElementById('itemName').value.trim();
+  const nameEn = document.getElementById('itemNameEn').value.trim();
+  const category = document.getElementById('itemCategory').value.trim();
+  const categoryEn = document.getElementById('itemCategoryEn').value.trim();
+  const description = document.getElementById('itemDesc').value.trim();
+  const price = parseFloat(document.getElementById('itemPrice').value);
+  const available = document.getElementById('itemAvailable').checked;
+  const suggested = document.getElementById('itemSuggested').checked;
+
+  if (!name || !category || isNaN(price)) {
+    errorEl.textContent = dt('fillRequiredError');
+    return;
+  }
+
+  const itemData = { name, nameEn, category, categoryEn, description, price, available, suggested };
+  if (uploadedImageUrl) itemData.image = uploadedImageUrl;
+
+  try {
+    const menuRef = db.collection('shops').doc(currentShopId).collection('menu');
+    if (id) {
+      await menuRef.doc(id).update(itemData);
+    } else {
+      await menuRef.add(itemData);
+    }
+    resetForm();
+    await loadItems();
+    loadCategoryManager();
+    switchSubView('list');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'حدث خطأ أثناء الحفظ. حاول مرة أخرى.';
+  }
+}
+
+async function editItem(id) {
+  const doc = await db.collection('shops').doc(currentShopId).collection('menu').doc(id).get();
+  if (!doc.exists) return;
+  const item = doc.data();
+
+  document.getElementById('itemId').value = id;
+  document.getElementById('itemName').value = item.name || '';
+  document.getElementById('itemNameEn').value = item.nameEn || '';
+  document.getElementById('itemCategory').value = item.category || '';
+  document.getElementById('itemCategoryEn').value = item.categoryEn || '';
+  document.getElementById('itemDesc').value = item.description || '';
+  document.getElementById('itemPrice').value = item.price || '';
+  document.getElementById('itemAvailable').checked = item.available !== false;
+  document.getElementById('itemSuggested').checked = item.suggested === true;
+  document.getElementById('formTitle').textContent = dt('editItemTitle');
+  uploadedImageUrl = item.image || null;
+
+  const preview = document.getElementById('itemImagePreview');
+  if (item.image) {
+    preview.src = item.image;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+
+  switchSubView('add');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function deleteItem(id) {
+  if (!confirm(dt('confirmDeleteItem'))) return;
+  const ref = db.collection('shops').doc(currentShopId).collection('menu').doc(id);
+  const doc = await ref.get();
+  if (doc.exists && doc.data().image) {
+    deleteOldImage(doc.data().image);
+  }
+  await ref.delete();
+  await loadItems();
+    loadCategoryManager();
+}
+
+function resetForm() {
+  document.getElementById('itemId').value = '';
+  document.getElementById('itemName').value = '';
+  document.getElementById('itemNameEn').value = '';
+  document.getElementById('itemCategory').value = '';
+  document.getElementById('itemCategoryEn').value = '';
+  document.getElementById('itemDesc').value = '';
+  document.getElementById('itemPrice').value = '';
+  document.getElementById('itemAvailable').checked = true;
+  document.getElementById('itemSuggested').checked = false;
+  document.getElementById('itemImage').value = '';
+  document.getElementById('itemImagePreview').style.display = 'none';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('formTitle').textContent = dt('addItemTitle');
+  document.getElementById('formError').textContent = '';
+  uploadedImageUrl = null;
+}
+
+// ===================== TAB 2: POS (orders + manual order) =====================
+const statusClasses = { pending: 'status-pending', preparing: 'status-preparing', ready: 'status-ready' };
+const nextStatus = { pending: 'preparing', preparing: 'ready' };
+let isFirstOrdersLoad = true;
+let ordersUnsub = null;
+let lastOrdersData = [];
+let completedOrdersData = [];
+let completedOrdersUnsub = null;
+
+const alertedCancelIds = new Set();
+
+// ===================== Gifts (أهدِ صديق) =====================
+let giftsUnsub = null;
+let pendingGiftsData = [];
+
+function listenToGiftCards() {
+  if (giftsUnsub) giftsUnsub();
+  giftsUnsub = db.collection('shops').doc(currentShopId).collection('giftCards')
+    .where('redeemed', '==', false)
+    .onSnapshot(snap => {
+      pendingGiftsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort newest-first in JS instead of via orderBy() — avoids needing a
+      // composite index (redeemed + createdAt) that a brand-new collection
+      // wouldn't have yet, which was silently failing the whole query.
+      pendingGiftsData.sort((a, b) => {
+        const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+        const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+        return tb - ta;
+      });
+      renderPendingGifts();
+      updateGiftsBadge();
+    }, err => console.error('listenToGiftCards failed:', err));
+}
+
+function updateGiftsBadge() {
+  const badge = document.getElementById('giftsBadge');
+  if (!badge) return;
+  const count = pendingGiftsData.length;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function renderPendingGifts() {
+  const el = document.getElementById('pendingGiftsList');
+  if (!el) return;
+
+  if (pendingGiftsData.length === 0) {
+    el.innerHTML = `<div class="card"><div class="state-msg">${dt('noPendingGifts')}</div></div>`;
+    return;
+  }
+
+  el.innerHTML = pendingGiftsData.map(gift => {
+    const itemsText = (gift.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+    return `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="font-weight:700; margin-bottom:4px;">🎁 ${gift.recipientName || ''}</div>
+        <div class="order-items-line">${gift.recipientPhone || ''}</div>
+        <div class="order-items-line">${itemsText} — ${Number(gift.total).toFixed(2)} ${dt('currency')}</div>
+        ${gift.personalMessage ? `<div class="order-items-line" style="font-style:italic;">💬 "${gift.personalMessage}"</div>` : ''}
+        <div class="order-actions" style="margin-top:10px;">
+          <button class="btn btn-ghost" onclick='sendGiftWelcomeWhatsApp("${gift.id}")'>💬 ${dt('sendWhatsappBtn')}</button>
+          <button class="btn" onclick='openGiftDeliverModal("${gift.id}")'>🎁 ${dt('deliverGiftBtn')}</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Sends a warm welcome message to the RECIPIENT, with a link to their
+// gift page — deliberately never mentions who bought the gift, per the
+// shop's request.
+function sendGiftWelcomeWhatsApp(giftId) {
+  const gift = pendingGiftsData.find(g => g.id === giftId);
+  if (!gift || !gift.recipientPhone) return;
+
+  const giftUrl = window.location.origin + window.location.pathname.replace('dashboard.html', '') + `menu.html?shop=${currentShopId}&gift=${giftId}`;
+  const message = `${dt('giftWelcomeLine1')} ${gift.recipientName || ''}\n${dt('giftWelcomeLine2')}\n${dt('giftWelcomeLine3')} (${shopNameForReceipt})\n${dt('giftWelcomeLine4')}\n\n${giftUrl}`;
+  const phoneDigits = gift.recipientPhone.replace(/\D/g, '');
+  const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+}
+
+function openGiftDeliverModal(giftId) {
+  const gift = pendingGiftsData.find(g => g.id === giftId);
+  if (!gift) return;
+
+  const itemsHtml = (gift.items || []).map(i => {
+    const iName = (dashLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+    return `<div class="order-item-row"><span class="order-item-qty">${i.qty}×</span><span class="order-item-name">${iName}</span><span class="order-item-price">${(i.price * i.qty).toFixed(2)}</span></div>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'giftDeliverOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('giftDeliverOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 4px; text-align:center;">🎁 ${gift.recipientName || ''}</h3>
+      <p style="text-align:center; color:var(--stone); margin-bottom:16px;">${gift.recipientPhone || ''}</p>
+      <div class="order-items-detail">
+        ${itemsHtml}
+        <div class="order-item-total-row"><span>${dt('total')}</span><span>${Number(gift.total).toFixed(2)} ${dt('currency')}</span></div>
+      </div>
+      ${gift.receiptUrl ? `<button class="btn btn-ghost" style="width:100%; margin-top:12px;" onclick='window.open("${gift.receiptUrl}", "_blank")'>📎 ${dt('viewReceiptBtn')}</button>` : ''}
+      <button class="btn" id="confirmDeliverGiftBtn" style="width:100%; margin-top:12px;" onclick='deliverGift("${giftId}")'>✅ ${dt('deliverGiftBtn')}</button>
+      <div id="giftDeliverError" class="error-msg"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function deliverGift(giftId) {
+  const btn = document.getElementById('confirmDeliverGiftBtn');
+  const errorEl = document.getElementById('giftDeliverError');
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = dt('redeemingGift'); }
+
+  const giftRef = db.collection('shops').doc(currentShopId).collection('giftCards').doc(giftId);
+  const orderRef = db.collection('shops').doc(currentShopId).collection('orders').doc();
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const freshGift = await tx.get(giftRef);
+      if (!freshGift.exists || freshGift.data().redeemed) {
+        throw new Error('ALREADY_REDEEMED');
+      }
+      const g = freshGift.data();
+
+      tx.update(giftRef, { redeemed: true, redeemedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+      tx.set(orderRef, {
+        orderType: 'table',
+        tableNumber: null,
+        carNumber: null,
+        carColor: null,
+        notes: `🎁 ${dt('giftOrderNote')}: ${g.recipientName || ''}`,
+        paymentMethod: 'transfer',
+        isGiftOrder: true,
+        receiptUrl: g.receiptUrl || null,
+        loyaltyPhone: null,
+        loyaltyRewardReady: false,
+        items: g.items,
+        total: g.total,
+        soldBy: dt('shopOwnerLabel'),
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    document.getElementById('giftDeliverOverlay').remove();
+  } catch (err) {
+    console.error('Gift delivery failed:', err);
+    if (errorEl) errorEl.textContent = dt('giftAlreadyUsed');
+    if (btn) { btn.disabled = false; btn.textContent = `✅ ${dt('deliverGiftBtn')}`; }
+  }
+}
+
+function listenToOrders() {
+  ordersUnsub = db.collection('shops').doc(currentShopId).collection('orders')
+    .where('status', 'in', ['pending', 'preparing'])
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snap => {
+      if (!isFirstOrdersLoad) {
+        const newOnes = snap.docChanges().filter(c => c.type === 'added');
+        if (newOnes.length > 0) {
+          playAlertSound();
+          const bell = document.querySelector('.bell-wrap');
+          bell.classList.remove('bell-shake');
+          void bell.offsetWidth;
+          bell.classList.add('bell-shake');
+
+          newOnes.forEach(change => {
+            if (change.doc.data().loyaltyRewardReady) {
+              showLoyaltyRewardPopup();
+            }
+          });
+        }
+
+        // A cancelled order exits this pending/preparing query, showing up
+        // as a "removed" change — with a distinct sound and a clear popup
+        // so it's never mistaken for an order that was simply completed.
+        snap.docChanges().forEach(change => {
+          const data = change.doc.data();
+          if (data.status === 'cancelled' && !alertedCancelIds.has(change.doc.id)) {
+            alertedCancelIds.add(change.doc.id);
+            playCancelSound();
+            showCancelledOrderPopup(data);
+          }
+        });
+      }
+      isFirstOrdersLoad = false;
+
+      const pendingCount = snap.docs.filter(d => d.data().status === 'pending').length;
+      const badge = document.getElementById('bellBadge');
+      if (pendingCount > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = pendingCount;
+      } else {
+        badge.style.display = 'none';
+      }
+
+      lastOrdersData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderOrdersColumns();
+    }, err => {
+      console.error(err);
+      document.getElementById('ordersColNew').innerHTML = `<div class="state-msg">${dt('ordersLoadError')}</div>`;
+      document.getElementById('ordersColPreparing').innerHTML = '';
+    });
+
+  // Refresh just the elapsed-time text + urgency coloring every 30s,
+  // without waiting for a new order or status change to trigger a re-render.
+  if (!window._ordersTickInterval) {
+    window._ordersTickInterval = setInterval(renderOrdersColumns, 30000);
+  }
+}
+
+function formatElapsed(minutes) {
+  if (minutes < 1) return dt('justNow');
+  return `${minutes} ${dt('minutesAgo')}`;
+}
+
+// Safe to call whether the card is shown inside the tap-to-open modal
+// (mobile) or directly inline in the column (desktop, no modal at all) —
+// does nothing if there's no modal to close.
+function closeOrderDetailModalIfOpen() {
+  const el = document.getElementById('orderDetailOverlay');
+  if (el) el.remove();
+}
+
+function renderOrdersColumns() {
+  const newCol = document.getElementById('ordersColNew');
+  const prepCol = document.getElementById('ordersColPreparing');
+  if (!newCol || !prepCol) return;
+
+  const now = Date.now();
+  const newOrders = lastOrdersData.filter(o => (o.status || 'pending') === 'pending');
+  const prepOrders = lastOrdersData.filter(o => (o.status || 'pending') === 'preparing');
+
+  function renderTile(order) {
+    let elapsedMin = null;
+    if (order.createdAt && order.createdAt.toDate) {
+      elapsedMin = Math.floor((now - order.createdAt.toDate().getTime()) / 60000);
+    }
+    const isUrgent = elapsedMin !== null && elapsedMin >= 10;
+    const label = order.orderType === 'car'
+      ? `🚗 ${order.carNumber || '-'}`
+      : order.orderType === 'delivery'
+        ? `🛵 ${order.deliveryWilayat || '—'}`
+        : `🍽️ ${order.tableNumber || '-'}`;
+
+    return `
+      <button type="button" class="order-tile ${isUrgent ? 'order-tile-urgent' : ''}" onclick='openOrderDetailModal("${order.id}")'>
+        ${order.loyaltyRewardReady ? '<span class="order-tile-gift">🎁</span>' : ''}
+        <span>${label}</span>
+      </button>
+    `;
+  }
+
+  function renderGridItem(order) {
+    return renderTile(order) + `<div class="order-card-desktop">${renderFullOrderCardHtml(order)}</div>`;
+  }
+
+  newCol.innerHTML = newOrders.length
+    ? `<div class="order-tiles-grid">${newOrders.map(renderGridItem).join('')}</div>`
+    : `<div class="state-msg">${dt('noOrdersYet')}</div>`;
+
+  prepCol.innerHTML = prepOrders.length
+    ? `<div class="order-tiles-grid">${prepOrders.map(renderGridItem).join('')}</div>`
+    : `<div class="state-msg">${dt('noOrdersYet')}</div>`;
+}
+
+// Builds the exact same detailed order card used before this redesign —
+// now only shown inside the tap-to-open modal, keeping all the same
+// actions (advance, print, WhatsApp, receipt, cancel) fully unchanged.
+function renderFullOrderCardHtml(order) {
+  const now = Date.now();
+  const status = order.status || 'pending';
+  const statusLabels = { pending: dt('statusNew'), preparing: dt('statusPreparing'), ready: dt('statusReady') };
+  const nextLabel = { pending: dt('startPreparingBtn'), preparing: dt('markReadyBtn') };
+  let elapsedMin = null;
+  if (order.createdAt && order.createdAt.toDate) {
+    elapsedMin = Math.floor((now - order.createdAt.toDate().getTime()) / 60000);
+  }
+  const isUrgent = elapsedMin !== null && elapsedMin >= 10;
+
+  const paymentLabels = { cash: dt('payCash'), transfer: dt('payTransfer'), card: dt('payCard') };
+  const paymentLabel = order.isGiftOrder
+    ? `<span style="color:#B3441E; font-weight:700;">✅ ${dt('giftPaidLabel')}</span>`
+    : (paymentLabels[order.paymentMethod] || '');
+
+  return `
+    <div class="order-card ${isUrgent ? 'order-urgent' : ''}" style="border:none; padding:0; margin:0;">
+      ${order.loyaltyRewardReady ? `
+        <div style="text-align:center; background:#FBEAD1; border-radius:14px; padding:16px 10px; margin-bottom:12px;">
+          <div style="font-size:2.8rem; line-height:1;">🎁</div>
+          <div style="font-weight:700; color:#A6650D; margin-top:8px; font-size:0.95rem;">${cachedLoyaltyRewardText || dt('customerHasRewardBadge')}</div>
+        </div>
+      ` : ''}
+      <div class="order-card-top">
+        <strong>${order.orderType === 'car' ? `🚗 ${translateCarColor(order.carColor) || ''} (${order.carNumber || ''})` : order.orderType === 'delivery' ? dt('orderFromDelivery') : (`🍽️ ${dt('tableLabel')} ` + (order.tableNumber || '—'))}</strong>
+        <span class="order-status ${statusClasses[status]}">${statusLabels[status]}</span>
+      </div>
+      ${order.orderType === 'delivery' ? `
+        <div class="delivery-details-box">
+          <a href="https://wa.me/${(order.deliveryPhone || '').replace(/\D/g, '')}" target="_blank" class="delivery-link-row">📱 ${order.deliveryPhone || ''}</a>
+          ${order.deliveryMapsLink ? `<a href="${order.deliveryMapsLink}" target="_blank" class="delivery-link-row">📍 ${dt('openMapsBtn')}</a>` : ''}
+          <div class="order-items-line">${order.deliveryWilayat || ''}${order.deliveryArea ? ' - ' + order.deliveryArea : ''}${order.deliveryHouseNumber ? ' - ' + dt('houseNoShort') + ' ' + order.deliveryHouseNumber : ''}</div>
+        </div>
+      ` : ''}
+      ${elapsedMin !== null ? `<div class="order-elapsed">${isUrgent ? '⚠️ ' : ''}${formatElapsed(elapsedMin)}</div>` : ''}
+      <div class="order-items-detail">
+        ${order.items.map(i => {
+          const iName = (dashLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+          return `
+          <div class="order-item-row">
+            <span class="order-item-qty">${i.qty}×</span>
+            <span class="order-item-name">${iName}</span>
+            ${order.isGiftOrder ? '' : `<span class="order-item-price">${(i.price * i.qty).toFixed(2)}</span>`}
+          </div>
+        `;
+        }).join('')}
+        <div class="order-item-total-row">
+          <span>${dt('total')}</span>
+          <span>${order.isGiftOrder ? '0.00' : Number(order.total).toFixed(2)} ${dt('currency')}</span>
+        </div>
+      </div>
+      ${paymentLabel ? `<div class="order-items-line">${paymentLabel}</div>` : ''}
+      ${order.notes ? `<div class="order-items-line" style="font-style:italic;">📝 ${order.notes}</div>` : ''}
+      ${order.soldBy ? `<div class="order-items-line">👤 ${dt('soldByLabel')}: ${order.soldBy}</div>` : ''}
+      <div class="order-actions">
+        ${nextStatus[status] ? `<button class="btn" onclick='advanceOrder("${order.id}", "${nextStatus[status]}"); closeOrderDetailModalIfOpen();'>${nextLabel[status]}</button>` : ''}
+        <button class="btn btn-ghost" onclick='printReceipt("${order.id}")'>🖨️ ${dt('printReceiptBtn')}</button>
+        ${order.loyaltyPhone ? `<button class="btn btn-ghost" onclick='sendWhatsAppInvoice("${order.id}")'>💬 ${dt('sendWhatsappBtn')}</button>` : ''}
+        ${order.receiptUrl ? `<button class="btn btn-ghost" onclick='window.open("${order.receiptUrl}", "_blank")'>📎 ${dt('viewReceiptBtn')}</button>` : ''}
+        <button class="btn btn-ghost" style="color:#B3441E;" onclick='staffCancelOrder("${order.id}"); closeOrderDetailModalIfOpen();'>❌ ${dt('cancelOrderBtn')}</button>
+      </div>
+    </div>
+  `;
+}
+
+function openOrderDetailModal(orderId) {
+  const order = lastOrdersData.find(o => o.id === orderId);
+  if (!order) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'orderDetailOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('orderDetailOverlay').remove()">×</button>
+      <div style="clear:both; padding-top:6px;">${renderFullOrderCardHtml(order)}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// ===================== Thermal receipt printing =====================
+// Opens WhatsApp with a ready-made text message summarizing the order,
+// addressed to the customer's own phone number (the one they gave for
+// loyalty points). The owner/staff still has to press Send themselves —
+// nothing is sent automatically.
+function sendWhatsAppInvoice(orderId) {
+  const order = lastOrdersData.find(o => o.id === orderId) || completedOrdersData.find(o => o.id === orderId);
+  if (!order || !order.loyaltyPhone) return;
+
+  const itemsText = order.items.map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+  const message = `*${shopNameForReceipt}*\n\n${dt('waInvoiceItemsLabel')}: ${itemsText}\n${dt('total')}: ${Number(order.total).toFixed(2)} ${dt('currency')}\n\n${dt('waInvoiceThankYou')}`;
+
+  const phoneDigits = order.loyaltyPhone.replace(/\D/g, '');
+  const waUrl = `https://wa.me/968${phoneDigits}?text=${encodeURIComponent(message)}`;
+  window.open(waUrl, '_blank');
+}
+
+function staffCancelOrder(orderId) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'staffCancelOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">❌</div>
+      <h3 style="margin-bottom:20px;">${dt('confirmStaffCancelOrder')}</h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:#B3441E;" id="staffCancelYesBtn">${dt('yesCancelBtn')}</button>
+        <button class="btn btn-ghost" style="flex:1;" id="staffCancelNoBtn">${dt('noKeepBtn')}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('staffCancelNoBtn').addEventListener('click', () => overlay.remove());
+  document.getElementById('staffCancelYesBtn').addEventListener('click', async () => {
+    overlay.remove();
+    try {
+      await db.collection('shops').doc(currentShopId).collection('orders').doc(orderId).update({ status: 'cancelled' });
+    } catch (err) {
+      console.error('Staff cancel order failed:', err);
+    }
+  });
+}
+
+function printReceipt(orderId) {
+  // Looks in both the live (pending/preparing) cache and the completed-orders
+  // cache, so the print button works from either list.
+  const order = lastOrdersData.find(o => o.id === orderId) || completedOrdersData.find(o => o.id === orderId);
+  if (!order) return;
+  printReceiptFromOrder(order);
+}
+
+function printReceiptFromOrder(order) {
+  const paymentLabels = { cash: dt('payCash'), transfer: dt('payTransfer'), card: dt('payCard') };
+  const paymentLabel = paymentLabels[order.paymentMethod] || '-';
+  const typeLine = order.orderType === 'car'
+    ? `🚗 ${translateCarColor(order.carColor) || ''} (${order.carNumber || ''})`
+    : order.orderType === 'delivery'
+      ? `🛵 ${order.deliveryWilayat || ''} ${order.deliveryArea || ''}`
+      : `🍽️ ${dt('tableLabel')} ${order.tableNumber || '-'}`;
+  const dateStr = order.createdAt && order.createdAt.toDate
+    ? order.createdAt.toDate().toLocaleString('ar-OM')
+    : new Date().toLocaleString('ar-OM');
+
+  // iOS blocks window.print() entirely when the app is installed as a
+  // home-screen PWA (Apple limitation, not something we can bypass in-page).
+  // For that specific case, open a real new Safari tab with a small
+  // dedicated print page instead — printing works fine there.
+  const isIOSStandalone = window.navigator.standalone === true;
+
+  if (isIOSStandalone) {
+    const receiptData = {
+      shopName: shopNameForReceipt,
+      dateStr,
+      typeLine,
+      items: (order.items || []).map(i => ({ name: (dashLang === 'en' && i.nameEn) ? i.nameEn : i.name, qty: i.qty, lineTotal: (i.price * i.qty).toFixed(2) })),
+      totalLabel: dt('total'),
+      totalValue: `${Number(order.total).toFixed(2)} ${dt('currency')}`,
+      paymentLine: `${dt('paymentMethodLbl')}: ${paymentLabel}`,
+      notesLine: order.notes ? `📝 ${order.notes}` : '',
+      thankYou: dt('thankYouMsg')
+    };
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(receiptData))));
+
+    // iOS Safari silently blocks a script-triggered click on a hidden link
+    // when the app is running in standalone (installed) mode — there's no
+    // error, it just does nothing. A real, visible link that the person taps
+    // themselves is treated as a genuine user action and always works.
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'iosPrintOverlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet" style="text-align:center;">
+        <button class="close-x" onclick="document.getElementById('iosPrintOverlay').remove()">×</button>
+        <h3 style="margin:8px 0 16px;">${dt('printReceiptBtn')}</h3>
+        <p style="color:var(--stone); font-size:0.9rem; margin-bottom:18px;">${dt('tapToOpenPrintPage')}</p>
+        <a href="receipt-print.html?data=${encoded}" target="_blank" class="btn" style="display:block; text-decoration:none;">🖨️ ${dt('openPrintPageBtn')}</a>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    return;
+  }
+
+  const itemsRows = (order.items || []).map(i => `
+    <tr>
+      <td style="text-align:right;">${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} × ${i.qty}</td>
+      <td style="text-align:left;">${(i.price * i.qty).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  // Fills a hidden on-page area and prints IN PLACE — no new window/tab is
+  // ever opened, so there's nothing for mobile back-navigation to get stuck
+  // on or accidentally sign the owner out of.
+  document.getElementById('printReceiptArea').innerHTML = `
+    <h2>${shopNameForReceipt}</h2>
+    <div class="receipt-center receipt-small">${dateStr}</div>
+    <div class="receipt-line"></div>
+    <div>${typeLine}</div>
+    <div class="receipt-line"></div>
+    <table>${itemsRows}</table>
+    <table>
+      <tr class="receipt-total-row">
+        <td>${dt('total')}</td>
+        <td style="text-align:left;">${Number(order.total).toFixed(2)} ${dt('currency')}</td>
+      </tr>
+    </table>
+    <div class="receipt-line"></div>
+    <div>${dt('paymentMethodLbl')}: ${paymentLabel}</div>
+    ${order.notes ? `<div>📝 ${order.notes}</div>` : ''}
+    <div class="receipt-line"></div>
+    <div class="receipt-center receipt-small">${dt('thankYouMsg')}</div>
+  `;
+
+  window.print();
+}
+
+// ===================== Completed orders (with reprint access) =====================
+function listenToCompletedOrders() {
+  completedOrdersUnsub = db.collection('shops').doc(currentShopId).collection('orders')
+    .where('status', '==', 'ready')
+    .orderBy('createdAt', 'desc')
+    .limit(20)
+    .onSnapshot(snap => {
+      completedOrdersData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCompletedOrders();
+    }, err => {
+      console.error(err);
+      const el = document.getElementById('completedOrdersList');
+      if (el) el.innerHTML = `<div class="state-msg">${dt('ordersLoadError')}</div>`;
+    });
+}
+
+function toggleCompletedOrders() {
+  const listEl = document.getElementById('completedOrdersList');
+  const chevron = document.getElementById('completedOrdersChevron');
+  const isOpen = listEl.style.display !== 'none';
+  listEl.style.display = isOpen ? 'none' : 'block';
+  chevron.textContent = isOpen ? '▾' : '▴';
+}
+
+function renderCompletedOrders() {
+  const el = document.getElementById('completedOrdersList');
+  if (!el) return;
+
+  if (completedOrdersData.length === 0) {
+    el.innerHTML = `<div class="state-msg">${dt('noCompletedOrdersYet')}</div>`;
+    return;
+  }
+
+  el.innerHTML = completedOrdersData.map(order => {
+    const typeLabel = order.orderType === 'car'
+      ? `🚗 ${translateCarColor(order.carColor) || ''} (${order.carNumber || ''})`
+      : order.orderType === 'delivery'
+        ? dt('orderFromDelivery')
+        : `🍽️ ${dt('tableLabel')} ${order.tableNumber || '—'}`;
+    return `
+      <div class="order-card">
+        <div class="order-card-top">
+          <strong>${typeLabel}</strong>
+          <span class="order-status status-ready">${dt('statusReady')}</span>
+        </div>
+        ${order.orderType === 'delivery' ? `
+          <div class="delivery-details-box">
+            <a href="https://wa.me/${(order.deliveryPhone || '').replace(/\D/g, '')}" target="_blank" class="delivery-link-row">📱 ${order.deliveryPhone || ''}</a>
+            ${order.deliveryMapsLink ? `<a href="${order.deliveryMapsLink}" target="_blank" class="delivery-link-row">📍 ${dt('openMapsBtn')}</a>` : ''}
+            <div class="order-items-line">${order.deliveryWilayat || ''}${order.deliveryArea ? ' - ' + order.deliveryArea : ''}${order.deliveryHouseNumber ? ' - ' + dt('houseNoShort') + ' ' + order.deliveryHouseNumber : ''}</div>
+          </div>
+        ` : ''}
+        <div class="order-items-detail">
+          ${order.items.map(i => {
+            const iName = (dashLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+            return `
+            <div class="order-item-row">
+              <span class="order-item-qty">${i.qty}×</span>
+              <span class="order-item-name">${iName}</span>
+              ${order.isGiftOrder ? '' : `<span class="order-item-price">${(i.price * i.qty).toFixed(2)}</span>`}
+            </div>
+          `;
+          }).join('')}
+          <div class="order-item-total-row">
+            <span>${dt('total')}</span>
+            <span>${order.isGiftOrder ? '0.00' : Number(order.total).toFixed(2)} ${dt('currency')}</span>
+          </div>
+        </div>
+        ${order.isGiftOrder ? `<div class="order-items-line"><span style="color:#B3441E; font-weight:700;">✅ ${dt('giftPaidLabel')}</span></div>` : ''}
+        <div class="order-actions">
+          <button class="btn btn-ghost" onclick='printReceipt("${order.id}")'>🖨️ ${dt('printReceiptBtn')}</button>
+          ${order.loyaltyPhone ? `<button class="btn btn-ghost" onclick='sendWhatsAppInvoice("${order.id}")'>💬 ${dt('sendWhatsappBtn')}</button>` : ''}
+          ${order.receiptUrl ? `<button class="btn btn-ghost" onclick='window.open("${order.receiptUrl}", "_blank")'>📎 ${dt('viewReceiptBtn')}</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function advanceOrder(orderId, newStatus) {
+  // Grab the order's data BEFORE updating — once it becomes "ready" it will
+  // disappear from the live pending/preparing columns, so this is our only
+  // chance to have it in hand for an immediate print if the user wants one.
+  const orderBeforeUpdate = lastOrdersData.find(o => o.id === orderId);
+
+  await db.collection('shops').doc(currentShopId).collection('orders').doc(orderId).update({ status: newStatus });
+
+  if (newStatus === 'ready' && orderBeforeUpdate) {
+    if (orderBeforeUpdate.loyaltyPhone) {
+      const loyaltyRef = db.collection('shops').doc(currentShopId).collection('loyaltyCustomers').doc(orderBeforeUpdate.loyaltyPhone);
+      if (orderBeforeUpdate.loyaltyRewardReady) {
+        // The customer already had enough points when they placed this
+        // order — they're redeeming their reward now, so reset automatically.
+        loyaltyRef.set({ points: 0 }, { merge: true })
+          .then(() => loadLoyaltyCustomers())
+          .catch(err => console.error('Loyalty reset failed (non-blocking):', err));
+      } else {
+        loyaltyRef.set({ points: firebase.firestore.FieldValue.increment(1) }, { merge: true })
+          .then(() => loadLoyaltyCustomers())
+          .catch(err => console.error('Loyalty point update failed (non-blocking):', err));
+      }
+    }
+    showPrintConfirmModal(orderBeforeUpdate);
+  }
+}
+
+// A nicely styled replacement for the plain browser confirm() dialog,
+// asking whether to print the receipt right after an order is marked ready.
+// Clear popup for staff when a newly-arrived order qualifies for a free
+// loyalty reward — separate from (and in addition to) the small badge on
+// the order card itself, so it's impossible to miss.
+// Clear popup for staff when a customer cancels their own order — the order
+// disappears from the live board at the same moment, so this ensures the
+// cancellation is never missed or mistaken for a normal completion.
+function showCancelledOrderPopup(order) {
+  const typeLabel = order.orderType === 'car'
+    ? `🚗 ${translateCarColor(order.carColor) || ''} (${order.carNumber || ''})`
+    : order.orderType === 'delivery'
+      ? dt('orderFromDelivery')
+      : `🍽️ ${dt('tableLabel')} ${order.tableNumber || '-'}`;
+  const itemsText = (order.items || []).map(i => `${(dashLang === 'en' && i.nameEn) ? i.nameEn : i.name} ×${i.qty}`).join('، ');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'cancelledOrderOverlay-' + Date.now();
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">❌</div>
+      <h3 style="margin-bottom:12px; color:#B3441E;">${dt('orderCancelledTitle')}</h3>
+      <p style="color:var(--ink); margin-bottom:4px;">${typeLabel}</p>
+      <p style="color:var(--stone); margin-bottom:4px;">${itemsText}</p>
+      <p style="color:var(--stone); margin-bottom:20px;">${Number(order.total).toFixed(2)} ${dt('currency')}</p>
+      <button class="btn" style="width:100%;" onclick="this.closest('.modal-overlay').remove()">${dt('okBtn')}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function showLoyaltyRewardPopup() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'loyaltyRewardOverlay-' + Date.now();
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">🎁</div>
+      <h3 style="margin-bottom:12px;">${dt('newRewardOrderTitle')}</h3>
+      <p style="color:var(--stone); margin-bottom:20px;">${dt('newRewardOrderMsg')}</p>
+      <button class="btn" style="width:100%;" onclick="this.closest('.modal-overlay').remove()">${dt('okBtn')}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function showPrintConfirmModal(order) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'printConfirmOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.2rem; margin-bottom:10px;">🖨️</div>
+      <h3 style="margin-bottom:20px;">${dt('printNowPrompt')}</h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="printConfirmYesBtn" style="flex:1;">${dt('printYesBtn')}</button>
+        <button class="btn btn-ghost" id="printConfirmNoBtn" style="flex:1;">${dt('printCancelBtn')}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('printConfirmYesBtn').addEventListener('click', () => {
+    overlay.remove();
+    printReceiptFromOrder(order);
+  });
+  document.getElementById('printConfirmNoBtn').addEventListener('click', () => {
+    overlay.remove();
+  });
+}
+
+// ===================== Keep screen awake while on the POS tab =====================
+let wakeLock = null;
+let activeTab = 'dashboard';
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (err) {
+    console.error('Wake Lock request failed:', err);
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && activeTab === 'pos') {
+    requestWakeLock();
+  }
+});
+
+// Manual "counter" order (staff-entered, no QR needed)
+let posCart = {};
+let posMenuItems = [];
+let posSelectedOrderType = 'table';
+
+async function openNewOrderModal() {
+  const snap = await db.collection('shops').doc(currentShopId).collection('menu').where('available', '!=', false).get();
+  posMenuItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  posCart = {};
+
+  const shopDoc = await db.collection('shops').doc(currentShopId).get();
+  const shopInfoForPos = shopDoc.exists ? (shopDoc.data().info || {}) : {};
+
+  const orderTypesEnabled = {
+    table: (shopInfoForPos.orderTypes ? shopInfoForPos.orderTypes.table !== false : true),
+    car: (shopInfoForPos.orderTypes ? shopInfoForPos.orderTypes.car !== false : true),
+    delivery: (shopInfoForPos.orderTypes ? shopInfoForPos.orderTypes.delivery === true : false)
+  };
+  if (!orderTypesEnabled.table && !orderTypesEnabled.car && !orderTypesEnabled.delivery) orderTypesEnabled.table = true;
+  posSelectedOrderType = orderTypesEnabled.table ? 'table' : (orderTypesEnabled.car ? 'car' : 'delivery');
+
+  let posOrderTypeHtml = '<div class="order-type-toggle">';
+  if (orderTypesEnabled.table) {
+    posOrderTypeHtml += `
+      <button type="button" class="order-type-btn ${posSelectedOrderType === 'table' ? 'active' : ''}" id="posTypeTableBtn" onclick="setPosOrderType('table')">
+        <span class="order-type-icon">🍽️</span><span>${dt('orderFromTable')}</span>
+      </button>`;
+  }
+  if (orderTypesEnabled.car) {
+    posOrderTypeHtml += `
+      <button type="button" class="order-type-btn ${posSelectedOrderType === 'car' ? 'active' : ''}" id="posTypeCarBtn" onclick="setPosOrderType('car')">
+        <span class="order-type-icon">🚗</span><span>${dt('orderFromCar')}</span>
+      </button>`;
+  }
+  if (orderTypesEnabled.delivery) {
+    posOrderTypeHtml += `
+      <button type="button" class="order-type-btn ${posSelectedOrderType === 'delivery' ? 'active' : ''}" id="posTypeDeliveryBtn" onclick="setPosOrderType('delivery')">
+        <span class="order-type-icon">🛵</span><span>${dt('orderFromDelivery')}</span>
+      </button>`;
+  }
+  posOrderTypeHtml += '</div>';
+
+  const paymentMethodsEnabled = shopInfoForPos.paymentMethods || { cash: true, transfer: true, card: true };
+  const paymentOptionDefs = [
+    { key: 'cash', label: dt('payCash') },
+    { key: 'transfer', label: dt('payTransfer') },
+    { key: 'card', label: dt('payCard') }
+  ];
+  let posPaymentOptionsHtml = paymentOptionDefs
+    .filter(p => paymentMethodsEnabled[p.key] !== false)
+    .map(p => `<option value="${p.key}">${p.label}</option>`)
+    .join('');
+  if (!posPaymentOptionsHtml) posPaymentOptionsHtml = `<option value="cash">${dt('payCash')}</option>`;
+
+  // Group items by category, preserving the order categories first appear in
+  const categoriesMap = {};
+  posMenuItems.forEach(item => {
+    const catKey = (dashLang === 'en' && item.categoryEn) ? item.categoryEn : (item.category || dt('uncategorizedLabel'));
+    if (!categoriesMap[catKey]) categoriesMap[catKey] = [];
+    categoriesMap[catKey].push(item);
+  });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'posOverlay';
+
+  let posCatPillsHtml = '';
+  let itemsHtml = Object.keys(categoriesMap).map((catName, catIndex) => {
+    const cardsHtml = categoriesMap[catName].map(item => {
+      const displayName = (dashLang === 'en' && item.nameEn) ? item.nameEn : item.name;
+      const nameEnSafe = (item.nameEn || '').replace(/'/g, "\\'");
+      const nameSafe = item.name.replace(/'/g, "\\'");
+      const outOfStock = item.stock === 0;
+      return `
+      <div class="grid-card ${outOfStock ? 'unavailable' : ''}">
+        <div class="grid-card-img-wrap">
+          ${item.image ? `<img src="${item.image}" class="grid-card-img" alt="">` : ''}
+          ${outOfStock ? `<div class="grid-unavailable-tag">${dt('outOfStockLabel')}</div>` : `
+            <div class="grid-qty-container" id="pos-qtyctrl-${item.id}">${renderPosQtyControl(item.id, nameSafe, nameEnSafe, item.price, 0)}</div>
+          `}
+        </div>
+        <div class="grid-card-body">
+          <div class="grid-card-name">${displayName}</div>
+          <div class="grid-card-price">${Number(item.price).toFixed(2)} ${dt('currency')}</div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    posCatPillsHtml += `<button type="button" class="pos-cat-pill ${catIndex === 0 ? 'active' : ''}" data-poscat="pos-cat-${catIndex}" onclick="scrollToPosCategory('pos-cat-${catIndex}', this)">${catName}</button>`;
+
+    return `<h4 id="pos-cat-${catIndex}" style="margin:16px 0 4px; color:var(--stone); scroll-margin-top:8px;">${catName}</h4><div class="menu-grid">${cardsHtml}</div>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div class="modal-sheet" id="posModalSheet" style="position:relative;">
+      <button class="close-x" onclick="document.getElementById('posOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 16px;">${dt('newCounterOrderTitle')}</h3>
+
+      <div class="pos-cat-pills-wrap">${posCatPillsHtml}</div>
+
+      ${posOrderTypeHtml}
+
+      <div id="posTableFields" style="margin-top:14px; display:${posSelectedOrderType === 'table' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="posTableNum">${dt('tableNumberLbl')}</label>
+          <input type="text" id="posTableNum">
+        </div>
+      </div>
+
+      <div id="posCarFields" style="margin-top:14px; display:${posSelectedOrderType === 'car' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="posCarNumber">${dt('carNumberLbl')}</label>
+          <input type="text" id="posCarNumber">
+        </div>
+        <div class="field">
+          <label for="posCarColorInput">${dt('carColorLbl')}</label>
+          <input type="text" id="posCarColorInput">
+        </div>
+      </div>
+
+      <div id="posDeliveryFields" style="margin-top:14px; display:${posSelectedOrderType === 'delivery' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="posDeliveryPhone">${dt('deliveryPhoneLbl')}</label>
+          <div style="display:flex; gap:8px;">
+            <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+            <input type="text" inputmode="numeric" id="posDeliveryPhone" placeholder="9xxxxxxx" style="flex:1;">
+          </div>
+        </div>
+        <div class="field">
+          <label for="posDeliveryMapsLink">${dt('deliveryMapsLbl')}</label>
+          <input type="text" id="posDeliveryMapsLink" placeholder="${dt('deliveryMapsPlaceholder')}" dir="ltr" style="text-align:left;">
+        </div>
+        <div class="field">
+          <label for="posDeliveryWilayat">${dt('deliveryWilayatLbl')}</label>
+          <input type="text" id="posDeliveryWilayat">
+        </div>
+        <div class="field">
+          <label for="posDeliveryArea">${dt('deliveryAreaLbl')}</label>
+          <input type="text" id="posDeliveryArea">
+        </div>
+        <div class="field">
+          <label for="posDeliveryHouseNumber">${dt('deliveryHouseNumberLbl')}</label>
+          <input type="text" id="posDeliveryHouseNumber">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="posPaymentMethod">${dt('paymentMethodLbl')}</label>
+        <select id="posPaymentMethod">${posPaymentOptionsHtml}</select>
+      </div>
+
+      ${itemsHtml}
+      <div class="field" style="margin-top:16px;">
+        <label for="posCustomerName">${dt('customerNameOptional')}</label>
+        <input type="text" id="posCustomerName" placeholder="${dt('counterCustomer')}">
+      </div>
+      <div id="posError" class="error-msg"></div>
+
+      <div class="pos-floating-submit-wrap">
+        <button class="btn" id="submitPosOrderBtn" style="width:100%;" onclick="submitPosOrder()">📤 إرسال الطلب</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function scrollToPosCategory(anchorId, pillEl) {
+  document.querySelectorAll('.pos-cat-pill').forEach(p => p.classList.remove('active'));
+  pillEl.classList.add('active');
+  const target = document.getElementById(anchorId);
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setPosOrderType(type) {
+  posSelectedOrderType = type;
+  const tableBtn = document.getElementById('posTypeTableBtn');
+  const carBtn = document.getElementById('posTypeCarBtn');
+  const deliveryBtn = document.getElementById('posTypeDeliveryBtn');
+  if (tableBtn) tableBtn.classList.toggle('active', type === 'table');
+  if (carBtn) carBtn.classList.toggle('active', type === 'car');
+  if (deliveryBtn) deliveryBtn.classList.toggle('active', type === 'delivery');
+  document.getElementById('posTableFields').style.display = type === 'table' ? 'block' : 'none';
+  document.getElementById('posCarFields').style.display = type === 'car' ? 'block' : 'none';
+  document.getElementById('posDeliveryFields').style.display = type === 'delivery' ? 'block' : 'none';
+}
+
+function renderPosQtyControl(itemId, name, nameEn, price, qty) {
+  if (qty <= 0) {
+    return `<button class="grid-add-btn" onclick='event.stopPropagation(); posChangeQty("${itemId}", "${name}", "${nameEn}", ${price}, 1)'>+</button>`;
+  }
+  return `
+    <div class="grid-qty-stepper" onclick="event.stopPropagation()">
+      <button onclick='posChangeQty("${itemId}", "${name}", "${nameEn}", ${price}, -1)'>−</button>
+      <span class="grid-qty-num">${qty}</span>
+      <button onclick='posChangeQty("${itemId}", "${name}", "${nameEn}", ${price}, 1)'>+</button>
+    </div>
+  `;
+}
+
+function posChangeQty(id, name, nameEn, price, delta) {
+  if (!posCart[id]) posCart[id] = { name, nameEn, price, qty: 0 };
+  posCart[id].qty += delta;
+  const newQty = posCart[id].qty > 0 ? posCart[id].qty : 0;
+  if (posCart[id].qty <= 0) delete posCart[id];
+
+  const container = document.getElementById(`pos-qtyctrl-${id}`);
+  if (container) container.innerHTML = renderPosQtyControl(id, name, nameEn, price, newQty);
+}
+
+async function submitPosOrder() {
+  const submitBtn = document.getElementById('submitPosOrderBtn');
+  if (submitBtn.disabled) return; // already submitting — ignore extra taps
+
+  const errorEl = document.getElementById('posError');
+  const cartEntries = Object.entries(posCart); // [itemId, {name, nameEn, price, qty}]
+  const items = cartEntries.map(([, i]) => ({ name: i.name, nameEn: i.nameEn || null, price: i.price, qty: i.qty }));
+  if (items.length === 0) {
+    errorEl.textContent = dt('addOneItemError');
+    return;
+  }
+  const total = items.reduce((sum, i) => sum + i.qty * i.price, 0);
+  const name = document.getElementById('posCustomerName').value.trim() || dt('counterCustomer');
+  const soldBy = isEmployee ? currentUserEmail : dt('shopOwnerLabel');
+  const paymentMethod = document.getElementById('posPaymentMethod').value;
+  const tableNum = document.getElementById('posTableNum') ? document.getElementById('posTableNum').value.trim() : '';
+  const carNum = document.getElementById('posCarNumber') ? document.getElementById('posCarNumber').value.trim() : '';
+  const carColorVal = document.getElementById('posCarColorInput') ? document.getElementById('posCarColorInput').value.trim() : '';
+  const deliveryPhoneVal = document.getElementById('posDeliveryPhone') ? document.getElementById('posDeliveryPhone').value.trim() : '';
+  const deliveryMapsVal = document.getElementById('posDeliveryMapsLink') ? document.getElementById('posDeliveryMapsLink').value.trim() : '';
+  const deliveryWilayatVal = document.getElementById('posDeliveryWilayat') ? document.getElementById('posDeliveryWilayat').value.trim() : '';
+  const deliveryAreaVal = document.getElementById('posDeliveryArea') ? document.getElementById('posDeliveryArea').value.trim() : '';
+  const deliveryHouseVal = document.getElementById('posDeliveryHouseNumber') ? document.getElementById('posDeliveryHouseNumber').value.trim() : '';
+
+  if (posSelectedOrderType === 'delivery' && (!deliveryPhoneVal || !deliveryMapsVal || !deliveryWilayatVal || !deliveryAreaVal)) {
+    errorEl.textContent = dt('deliveryFieldsError');
+    return;
+  }
+
+  const orderRef = db.collection('shops').doc(currentShopId).collection('orders').doc();
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = dt('sendingOrderLoading');
+  errorEl.textContent = '';
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const menuRefs = cartEntries.map(([id]) => db.collection('shops').doc(currentShopId).collection('menu').doc(id));
+      const menuDocs = await Promise.all(menuRefs.map(ref => tx.get(ref)));
+
+      // Verify stock BEFORE writing anything — if any tracked item doesn't
+      // have enough left, the whole order is rejected (nothing is decremented).
+      for (let i = 0; i < cartEntries.length; i++) {
+        const [, cartItem] = cartEntries[i];
+        const menuData = menuDocs[i].exists ? menuDocs[i].data() : {};
+        if (typeof menuData.stock === 'number' && menuData.stock < cartItem.qty) {
+          const err = new Error('OUT_OF_STOCK');
+          err.itemName = (dashLang === 'en' && menuData.nameEn) ? menuData.nameEn : cartItem.name;
+          throw err;
+        }
+      }
+
+      for (let i = 0; i < cartEntries.length; i++) {
+        const [, cartItem] = cartEntries[i];
+        const menuData = menuDocs[i].exists ? menuDocs[i].data() : {};
+        if (typeof menuData.stock === 'number') {
+          tx.update(menuRefs[i], { stock: menuData.stock - cartItem.qty });
+        }
+      }
+
+      tx.set(orderRef, {
+        customerName: name,
+        orderType: posSelectedOrderType,
+        tableNumber: posSelectedOrderType === 'table' ? (tableNum || null) : null,
+        carNumber: posSelectedOrderType === 'car' ? (carNum || null) : null,
+        carColor: posSelectedOrderType === 'car' ? (carColorVal || null) : null,
+        deliveryPhone: posSelectedOrderType === 'delivery' && deliveryPhoneVal ? `+968 ${deliveryPhoneVal}` : null,
+        deliveryMapsLink: posSelectedOrderType === 'delivery' ? (deliveryMapsVal || null) : null,
+        deliveryWilayat: posSelectedOrderType === 'delivery' ? (deliveryWilayatVal || null) : null,
+        deliveryArea: posSelectedOrderType === 'delivery' ? (deliveryAreaVal || null) : null,
+        deliveryHouseNumber: posSelectedOrderType === 'delivery' ? (deliveryHouseVal || null) : null,
+        paymentMethod,
+        notes: null,
+        items,
+        total,
+        soldBy,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    // Best-effort activity tracking for the admin panel — never allowed to
+    // interfere with the order itself if it fails for any reason.
+    db.collection('shops').doc(currentShopId).update({
+      'info.lastOrderAt': firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('lastOrderAt update failed (non-blocking):', err));
+
+    document.getElementById('posOverlay').remove();
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'OUT_OF_STOCK') {
+      errorEl.textContent = `${dt('outOfStockError')}: ${err.itemName || ''}`;
+    } else {
+      errorEl.textContent = dt('orderSendErrorGeneric');
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = '📤 إرسال الطلب';
+  }
+}
+
+// ===================== TAB 3: Inventory =====================
+async function loadInventory() {
+  const listEl = document.getElementById('inventoryList');
+  const snap = await db.collection('shops').doc(currentShopId).collection('menu').orderBy('category').get();
+
+  if (snap.empty) {
+    listEl.innerHTML = `<div class="state-msg">${dt('addFirstItemsHint')}</div>`;
+    return;
+  }
+
+  let html = '';
+  snap.forEach(doc => {
+    const item = doc.data();
+    const displayName = (dashLang === 'en' && item.nameEn) ? item.nameEn : item.name;
+    const stock = item.stock;
+    const isOut = stock === 0;
+    const isLow = typeof stock === 'number' && stock > 0 && stock <= 3;
+    html += `
+      <div class="inventory-row">
+        <div class="grow">
+          <div class="item-name">${displayName}</div>
+          ${isOut ? `<div class="stock-low">${dt('outOfStockLabel')}</div>` : (isLow ? `<div class="stock-low">${dt('lowStockWarning')}</div>` : '')}
+        </div>
+        <input type="number" min="0" class="inventory-stock-input" data-item-id="${doc.id}" placeholder="${dt('unlimitedPlaceholder')}" value="${stock !== undefined && stock !== null ? stock : ''}">
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+async function saveAllInventory() {
+  const inputs = document.querySelectorAll('.inventory-stock-input');
+  const statusEl = document.getElementById('inventorySaveStatus');
+  statusEl.textContent = dt('savingInventory');
+
+  const batch = db.batch();
+  inputs.forEach(input => {
+    const ref = db.collection('shops').doc(currentShopId).collection('menu').doc(input.dataset.itemId);
+    const value = input.value;
+    if (value === '' || value === null) {
+      batch.update(ref, { stock: firebase.firestore.FieldValue.delete() });
+    } else {
+      batch.update(ref, { stock: parseInt(value) || 0 });
+    }
+  });
+
+  try {
+    await batch.commit();
+    statusEl.textContent = dt('savedSuccess');
+    await loadInventory();
+    setTimeout(() => { statusEl.textContent = ''; }, 2500);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = dt('saveErrorGeneric');
+  }
+}
+
+// ===================== TAB 4: Sales analytics =====================
+// ===================== Auto "best seller" badge =====================
+// Runs quietly each time the dashboard loads: looks at the last 30 days of
+// orders, finds the top-selling item by name, and flags it (bestSeller: true)
+// so the customer menu can show a small "الأكثر طلباً" badge — no manual
+// button needed, it just stays current every time the owner opens the app.
+// ===================== Public rating stats (readable by customers) =====================
+// Orders aren't listable by customers (privacy), so we can't compute this live
+// on the menu page. Instead we compute it here (owner is authenticated) and
+// publish just the aggregate numbers onto the shop's public info — the owner
+// controls whether this is actually shown via the "showRatingPublicly" toggle.
+async function updatePublicRatingStats() {
+  try {
+    const snap = await db.collection('shops').doc(currentShopId).collection('orders')
+      .where('rating', '>=', 1).get();
+
+    let sum = 0, count = 0;
+    snap.forEach(doc => {
+      const r = doc.data().rating;
+      if (typeof r === 'number') { sum += r; count++; }
+    });
+
+    if (count > 0) {
+      await db.collection('shops').doc(currentShopId).update({
+        'info.avgRating': Math.round((sum / count) * 10) / 10,
+        'info.ratingCount': count
+      });
+    }
+  } catch (err) {
+    console.error('Public rating stats update failed (non-blocking):', err);
+  }
+}
+
+async function updateBestSellerFlag() {
+  try {
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const ordersSnap = await db.collection('shops').doc(currentShopId).collection('orders')
+      .where('createdAt', '>=', startDate).get();
+
+    const itemCounts = {};
+    ordersSnap.forEach(doc => {
+      (doc.data().items || []).forEach(i => {
+        itemCounts[i.name] = (itemCounts[i.name] || 0) + i.qty;
+      });
+    });
+
+    const sorted = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]);
+    const topName = sorted.length > 0 ? sorted[0][0] : null;
+
+    const menuSnap = await db.collection('shops').doc(currentShopId).collection('menu').get();
+    const batch = db.batch();
+    let changed = false;
+
+    menuSnap.forEach(doc => {
+      const item = doc.data();
+      const shouldBeBest = topName !== null && item.name === topName;
+      if (!!item.bestSeller !== shouldBeBest) {
+        batch.update(doc.ref, { bestSeller: shouldBeBest });
+        changed = true;
+      }
+    });
+
+    if (changed) await batch.commit();
+  } catch (err) {
+    console.error('Best seller update failed (non-blocking):', err);
+  }
+}
+
+// ===================== Excel export (custom date range, styled) =====================
+async function exportSalesExcel() {
+  const errorEl = document.getElementById('exportError');
+  const statusEl = document.getElementById('exportStatus');
+  errorEl.textContent = '';
+  statusEl.textContent = '';
+
+  const fromStr = document.getElementById('exportFrom').value;
+  const toStr = document.getElementById('exportTo').value;
+
+  if (!fromStr || !toStr) {
+    errorEl.textContent = dt('exportDatesRequired');
+    return;
+  }
+
+  const fromDate = new Date(fromStr + 'T00:00:00');
+  const toDate = new Date(toStr + 'T23:59:59');
+
+  if (fromDate > toDate) {
+    errorEl.textContent = dt('exportDateOrderError');
+    return;
+  }
+
+  if (typeof XLSX === 'undefined') {
+    errorEl.textContent = dt('exportLibError');
+    return;
+  }
+
+  statusEl.textContent = dt('exportPreparing');
+
+  const exportLang = document.getElementById('exportLang').value;
+  const EL = {
+    ar: {
+      reportTitle: 'تقرير المبيعات', period: 'الفترة', to: 'إلى', totalSales: 'إجمالي المبيعات (ر.ع)',
+      orderCount: 'عدد الطلبات', topSelling: 'الأكثر مبيعاً', qty: 'الكمية', date: 'التاريخ', time: 'الوقت',
+      type: 'النوع', items: 'الأصناف', payment: 'طريقة الدفع', total: 'الإجمالي (ر.ع)', table: 'طاولة',
+      cash: 'نقداً', transfer: 'تحويل بنكي', card: 'فيزا/بطاقة', sheetName: 'المبيعات', giftLabel: 'هدية'
+    },
+    en: {
+      reportTitle: 'Sales Report', period: 'Period', to: 'to', totalSales: 'Total Sales (OMR)',
+      orderCount: 'Order Count', topSelling: 'Top Selling', qty: 'Qty', date: 'Date', time: 'Time',
+      type: 'Type', items: 'Items', payment: 'Payment Method', total: 'Total (OMR)', table: 'Table',
+      cash: 'Cash', transfer: 'Bank Transfer', card: 'Visa/Card', sheetName: 'Sales', giftLabel: 'Gift'
+    }
+  }[exportLang] || {};
+
+  try {
+    const snap = await db.collection('shops').doc(currentShopId).collection('orders')
+      .where('createdAt', '>=', fromDate)
+      .where('createdAt', '<=', toDate)
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    const shopDoc = await db.collection('shops').doc(currentShopId).get();
+    const shopInfoForExport = shopDoc.exists ? (shopDoc.data().info || {}) : {};
+    const shopName = (exportLang === 'en' && shopInfoForExport.nameEn) ? shopInfoForExport.nameEn : (shopInfoForExport.name || '');
+
+    let totalSales = 0;
+    const itemCounts = {};
+    const rows = [];
+
+    snap.forEach(doc => {
+      const o = doc.data();
+      totalSales += Number(o.total) || 0;
+      (o.items || []).forEach(i => {
+        const itemLabel = (exportLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+        itemCounts[itemLabel] = (itemCounts[itemLabel] || 0) + i.qty;
+      });
+
+      const created = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : null;
+      const typeLabel = o.orderType === 'car'
+        ? `🚗 ${o.carColor || ''} (${o.carNumber || ''})`
+        : `🍽️ ${EL.table} ${o.tableNumber || '-'}`;
+      const itemsText = (o.items || []).map(i => {
+        const itemLabel = (exportLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+        return `${itemLabel} ×${i.qty}`;
+      }).join('، ');
+      const paymentLabels = { cash: EL.cash, transfer: EL.transfer, card: EL.card };
+      const paymentText = o.isGiftOrder ? `🎁 ${EL.giftLabel}` : (paymentLabels[o.paymentMethod] || '-');
+
+      rows.push([
+        created ? created.toLocaleDateString('en-GB') : '',
+        created ? created.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }) : '',
+        typeLabel,
+        itemsText,
+        paymentText,
+        Number(o.total) || 0
+      ]);
+    });
+
+    const topItems = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    // ---- Build the worksheet as a 2D array first ----
+    const data = [];
+    data.push([shopName || EL.reportTitle]);
+    data.push([`${EL.period}: ${fromStr} ${EL.to} ${toStr}`]);
+    data.push([]);
+    data.push([EL.totalSales, totalSales.toFixed(2)]);
+    data.push([EL.orderCount, snap.size]);
+    data.push([]);
+    data.push([EL.topSelling, EL.qty]);
+    topItems.forEach(([name, qty]) => data.push([name, qty]));
+    data.push([]);
+    const headerRowIndex = data.length;
+    data.push([EL.date, EL.time, EL.type, EL.items, EL.payment, EL.total]);
+    const firstDataRow = data.length;
+    rows.forEach(r => data.push(r));
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{ wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 45 }, { wch: 16 }, { wch: 14 }];
+
+    const brownFill = { fill: { fgColor: { rgb: '6B4226' } }, font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14 } };
+    const goldFill = { fill: { fgColor: { rgb: 'C99A3E' } }, font: { bold: true, color: { rgb: 'FFFFFF' } } };
+    const tableHeaderStyle = { fill: { fgColor: { rgb: '3E5C8A' } }, font: { bold: true, color: { rgb: 'FFFFFF' } } };
+    const altRow = { fill: { fgColor: { rgb: 'F5EDE0' } } };
+
+    function setCell(r, c, style) {
+      const addr = XLSX.utils.encode_cell({ r, c });
+      if (ws[addr]) ws[addr].s = style;
+    }
+
+    setCell(0, 0, brownFill);
+    setCell(1, 0, { font: { italic: true, color: { rgb: '6B4226' } } });
+    setCell(3, 0, goldFill); setCell(3, 1, goldFill);
+    setCell(4, 0, goldFill); setCell(4, 1, goldFill);
+    setCell(6, 0, tableHeaderStyle); setCell(6, 1, tableHeaderStyle);
+
+    for (let c = 0; c < 6; c++) setCell(headerRowIndex, c, tableHeaderStyle);
+    for (let r = firstDataRow; r < data.length; r++) {
+      if ((r - firstDataRow) % 2 === 1) {
+        for (let c = 0; c < 6; c++) setCell(r, c, altRow);
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, EL.sheetName);
+    XLSX.writeFile(wb, `sales-report-${fromStr}-to-${toStr}.xlsx`);
+
+    statusEl.textContent = dt('exportDone');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = dt('exportGenericError') + ': ' + err.message;
+  }
+}
+
+async function loadSales(range, btnEl) {
+  document.querySelectorAll('.range-tab').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const now = new Date();
+  let startDate;
+  if (range === 'day') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (range === 'week') {
+    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  } else {
+    startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  }
+
+  const snap = await db.collection('shops').doc(currentShopId).collection('orders')
+    .where('createdAt', '>=', startDate)
+    .get();
+
+  let total = 0;
+  const itemCounts = {};
+  const paymentTotals = { cash: 0, transfer: 0, card: 0 };
+  const staffTotals = {};
+  let ratingSum = 0;
+  let ratingCount = 0;
+
+  snap.forEach(doc => {
+    const order = doc.data();
+    total += Number(order.total) || 0;
+    (order.items || []).forEach(i => {
+      itemCounts[i.name] = (itemCounts[i.name] || 0) + i.qty;
+    });
+    if (typeof order.rating === 'number') {
+      ratingSum += order.rating;
+      ratingCount++;
+    }
+    const pm = order.paymentMethod;
+    if (pm && paymentTotals.hasOwnProperty(pm)) {
+      paymentTotals[pm] += Number(order.total) || 0;
+    }
+    if (order.soldBy) {
+      staffTotals[order.soldBy] = (staffTotals[order.soldBy] || 0) + (Number(order.total) || 0);
+    }
+  });
+
+  document.getElementById('salesTotal').textContent = total.toFixed(2);
+  document.getElementById('salesCount').textContent = snap.size;
+  document.getElementById('avgRating').textContent = ratingCount > 0
+    ? `${(ratingSum / ratingCount).toFixed(1)} ⭐`
+    : '—';
+
+  const paymentLabels = { cash: dt('payCash'), transfer: dt('payTransfer'), card: dt('payCard') };
+  const paymentEl = document.getElementById('paymentBreakdown');
+  if (paymentEl) {
+    paymentEl.innerHTML = Object.entries(paymentTotals)
+      .filter(([, amt]) => amt > 0)
+      .map(([key, amt]) => `<div class="top-item-row"><span>${paymentLabels[key]}</span><span>${amt.toFixed(2)} ${dt('currency')}</span></div>`)
+      .join('') || `<div class="state-msg">${dt('noSalesPeriod')}</div>`;
+  }
+
+  const staffEl = document.getElementById('staffBreakdown');
+  if (staffEl) {
+    staffEl.innerHTML = Object.entries(staffTotals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, amt]) => `<div class="top-item-row"><span>${name}</span><span>${amt.toFixed(2)} ${dt('currency')}</span></div>`)
+      .join('') || `<div class="state-msg">${dt('noCounterSalesYet')}</div>`;
+  }
+
+  const sorted = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topEl = document.getElementById('topItemsList');
+  if (sorted.length === 0) {
+    topEl.innerHTML = `<div class="state-msg">${dt('noSalesPeriod')}</div>`;
+  } else {
+    topEl.innerHTML = sorted.map(([name, qty]) => `
+      <div class="top-item-row"><span>${name}</span><span>${qty} ${dt('salesUnit')}</span></div>
+    `).join('');
+  }
+}
+</script>
+
+</body>
+</html>

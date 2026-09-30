@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فاتورة</title>
+<style>
+  @page { margin: 4mm; }
+  body {
+    width: 76mm;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #000;
+    margin: 0 auto;
+    padding: 10px 0;
+  }
+  h2 { text-align: center; margin: 4px 0; font-size: 15px; }
+  .line { border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 2px 0; }
+  .total-row td { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 6px; }
+  .center { text-align: center; }
+  .small { font-size: 10px; color: #333; }
+</style>
+</head>
+<body>
+
+<div id="receiptContent" class="center">جاري التحميل...</div>
+
+<script>
+// Reads the receipt data passed via the URL (base64-encoded JSON) and renders
+// it, then triggers printing. This page opens as a REAL new browser tab
+// (via a normal link click, not window.open), which is what lets printing
+// actually work on an iPhone/iPad even when the main app is installed as a
+// home-screen PWA — Apple blocks window.print() inside standalone PWA mode,
+// but not in a regular Safari tab like this one.
+try {
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('data');
+  const r = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+
+  const itemsRows = r.items.map(i => `
+    <tr>
+      <td style="text-align:right;">${i.name} × ${i.qty}</td>
+      <td style="text-align:left;">${i.lineTotal}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('receiptContent').outerHTML = `
+    <h2>${r.shopName}</h2>
+    <div class="center small">${r.dateStr}</div>
+    <div class="line"></div>
+    <div>${r.typeLine}</div>
+    <div class="line"></div>
+    <table>${itemsRows}</table>
+    <table>
+      <tr class="total-row">
+        <td>${r.totalLabel}</td>
+        <td style="text-align:left;">${r.totalValue}</td>
+      </tr>
+    </table>
+    <div class="line"></div>
+    <div>${r.paymentLine}</div>
+    ${r.notesLine ? `<div>${r.notesLine}</div>` : ''}
+    <div class="line"></div>
+    <div class="center small">${r.thankYou}</div>
+  `;
+
+  window.onload = () => window.print();
+  // In case onload already fired before this script ran:
+  if (document.readyState === 'complete') window.print();
+} catch (err) {
+  document.getElementById('receiptContent').textContent = 'تعذر تحميل الفاتورة.';
+  console.error(err);
+}
+</script>
+
+</body>
+</html>

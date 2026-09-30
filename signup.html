@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cafeoman">
+<meta name="theme-color" content="#6B4226">
+<script src="pwa-install.js" defer></script>
+
+<title>سجّل كوفيك</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap" style="max-width:420px; padding-top:50px;">
+  <div class="shop-name display" style="text-align:center; margin-bottom:8px;">سجّل كوفيك</div>
+  <p style="text-align:center; color:var(--stone); font-size:0.85rem; margin-bottom:24px;">
+    أنشئ حسابك وابدأ تجهز قائمتك الرقمية خلال دقائق.
+  </p>
+
+  <div class="card">
+    <div class="field">
+      <label for="signupEmail">البريد الإلكتروني <span style="color:#B3441E;">*</span></label>
+      <input type="email" id="signupEmail" placeholder="you@example.com">
+    </div>
+
+    <div class="field">
+      <label for="signupPassword">كلمة المرور</label>
+      <input type="password" id="signupPassword" placeholder="6 أحرف على الأقل">
+    </div>
+
+    <div class="field">
+      <label for="signupPasswordConfirm">تأكيد كلمة المرور</label>
+      <input type="password" id="signupPasswordConfirm" placeholder="أعد كتابة كلمة المرور">
+    </div>
+
+    <div class="field">
+      <label for="signupWhatsapp">رقم الواتساب <span style="color:#B3441E;">*</span></label>
+      <div style="display:flex; gap:8px;">
+        <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+        <input type="tel" id="signupWhatsapp" placeholder="9xxxxxxx" style="flex:1;">
+      </div>
+    </div>
+
+    <button class="btn" style="width:100%;" onclick="signup()">إنشاء الحساب</button>
+    <div id="error" class="error-msg"></div>
+
+    <div style="text-align:center; margin-top:16px; font-size:0.85rem; color:var(--stone);">
+      عندك حساب؟ <a href="login.html" style="color:var(--accent);">سجّل دخولك</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+async function signup() {
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+  const localNumber = document.getElementById('signupWhatsapp').value.trim().replace(/[\s-]/g, '');
+  const whatsapp = localNumber ? '+968' + localNumber : '';
+
+  if (!email) {
+    errorEl.textContent = 'البريد الإلكتروني مطلوب.';
+    return;
+  }
+  if (!localNumber) {
+    errorEl.textContent = 'رقم الواتساب مطلوب.';
+    return;
+  }
+  if (!/^[0-9]{7,9}$/.test(localNumber)) {
+    errorEl.textContent = 'رقم الواتساب غير صحيح. اكتب رقمك بدون رمز الدولة (مثال: 91234567).';
+    return;
+  }
+  if (!password || !passwordConfirm) {
+    errorEl.textContent = 'الرجاء تعبئة كلمة المرور وتأكيدها.';
+    return;
+  }
+  if (password.length < 6) {
+    errorEl.textContent = 'كلمة المرور لازم تكون 6 أحرف على الأقل.';
+    return;
+  }
+  if (password !== passwordConfirm) {
+    errorEl.textContent = 'كلمتا المرور غير متطابقتين.';
+    return;
+  }
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, password);
+    const uid = cred.user.uid;
+
+    // Create the shop's Firestore document. Status starts as "pending" until
+    // the owner verifies their email — at that point the dashboard automatically
+    // activates a 7-day free trial. After the trial ends, an admin needs to
+    // confirm payment and extend the subscription end date.
+    await db.collection('shops').doc(uid).set({
+      info: {
+        name: '',
+        whatsapp,
+        email,
+        subscriptionStatus: 'pending',
+        selfSignup: true
+      }
+    });
+
+    await cred.user.sendEmailVerification();
+
+    document.querySelector('.card').innerHTML = `
+      <div style="text-align:center; padding:20px 10px;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">📧</div>
+        <h3 style="margin-bottom:10px;">تحقق من بريدك الإلكتروني</h3>
+        <p style="color:var(--stone); font-size:0.9rem;">
+          أرسلنا رابط تأكيد إلى <strong>${email}</strong>.<br>
+          بعد ما تضغط الرابط، سجّل دخولك وبتتفعّل تجربتك المجانية (14 يوم) تلقائياً.
+        </p>
+        <p style="color:#B3441E; font-size:0.85rem; margin-top:10px;">
+          📩 لو ما لقيت الإيميل بصندوق الوارد خلال دقيقة، تفقد مجلد "البريد غير المرغوب / Spam" — أحياناً يوصله هناك.
+        </p>
+        <a href="login.html" class="btn" style="display:inline-block; margin-top:16px; text-decoration:none;">تسجيل الدخول</a>
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'auth/email-already-in-use') {
+      errorEl.textContent = 'هذا البريد الإلكتروني مستخدم مسبقاً. جرب تسجيل الدخول بدل ذلك.';
+    } else if (err.code === 'auth/invalid-email') {
+      errorEl.textContent = 'صيغة البريد الإلكتروني غير صحيحة.';
+    } else {
+      errorEl.textContent = 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.';
+    }
+  }
+}
+
+document.getElementById('signupPasswordConfirm').addEventListener('keydown', e => {
+  if (e.key === 'Enter') signup();
+});
+</script>
+
+</body>
+</html>

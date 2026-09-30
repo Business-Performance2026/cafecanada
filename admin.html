@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cafeoman">
+<meta name="theme-color" content="#6B4226">
+<script src="pwa-install.js" defer></script>
+
+<title>لوحة الأدمن</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Login screen -->
+<div class="wrap" id="loginScreen" style="max-width:400px; padding-top:60px; display:none;">
+  <div class="shop-name display" style="text-align:center; margin-bottom:30px;">دخول الأدمن</div>
+  <div class="card">
+    <div class="field">
+      <label for="adminEmail">البريد الإلكتروني</label>
+      <input type="email" id="adminEmail">
+    </div>
+    <div class="field">
+      <label for="adminPassword">كلمة المرور</label>
+      <input type="password" id="adminPassword">
+    </div>
+    <button class="btn" style="width:100%;" onclick="adminLogin()">دخول</button>
+    <div id="loginError" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- Admin dashboard -->
+<div class="wrap" id="adminScreen" style="display:none;">
+  <div class="top-bar">
+    <div class="shop-name display">لوحة الأدمن</div>
+    <button class="btn btn-ghost" onclick="adminLogout()">تسجيل خروج</button>
+  </div>
+
+  <!-- Expiring-soon alert (auto-computed on load) -->
+  <div id="expiringBanner"></div>
+
+  <!-- Overview stats -->
+  <div class="sales-summary" style="flex-wrap:wrap; margin-bottom:16px;">
+    <div class="sales-summary-box">
+      <span class="big-num" id="statTotal">0</span>
+      <span class="label">إجمالي الكوفيات</span>
+    </div>
+    <div class="sales-summary-box">
+      <span class="big-num" id="statActive">0</span>
+      <span class="label">نشط</span>
+    </div>
+    <div class="sales-summary-box">
+      <span class="big-num" id="statPending">0</span>
+      <span class="label">بانتظار التفعيل</span>
+    </div>
+    <div class="sales-summary-box">
+      <span class="big-num" id="statExpired">0</span>
+      <span class="label">موقوف</span>
+    </div>
+  </div>
+
+  <!-- Add new shop -->
+  <div class="card">
+    <h3 style="margin-bottom:16px;">إضافة كوفي جديد</h3>
+
+    <div class="field">
+      <label for="newShopName">اسم الكوفي</label>
+      <input type="text" id="newShopName" placeholder="مثال: قهوة الروضة">
+    </div>
+    <div class="field">
+      <label for="newShopLocation">الموقع (اختياري)</label>
+      <input type="text" id="newShopLocation" placeholder="مثال: مسقط">
+    </div>
+    <div class="field">
+      <label for="newShopColor">اللون المميز</label>
+      <input type="color" id="newShopColor" value="#8B5A2B" style="width:80px; padding:4px;">
+    </div>
+    <div class="field">
+      <label for="newOwnerEmail">إيميل صاحب الكوفي (لتسجيل دخوله)</label>
+      <input type="email" id="newOwnerEmail" placeholder="owner@example.com">
+    </div>
+    <div class="field">
+      <label for="newOwnerPassword">كلمة مرور مؤقتة له</label>
+      <input type="text" id="newOwnerPassword" placeholder="8 أحرف على الأقل">
+    </div>
+
+    <button class="btn" onclick="createShop()">إنشاء الكوفي</button>
+    <div id="createError" class="error-msg"></div>
+    <div id="createSuccess" style="color:#3D6B4F; font-size:0.9rem; margin-top:10px;"></div>
+    <div id="qrResult" style="margin-top:16px; text-align:center;"></div>
+  </div>
+
+  <!-- Shops list -->
+  <h3 style="margin:28px 0 12px;">الكوفيات المسجّلة</h3>
+
+  <div class="field">
+    <input type="text" id="shopSearchInput" placeholder="🔍 ابحث بالاسم..." oninput="renderShopsList()">
+  </div>
+  <div class="range-tabs" style="margin-bottom:16px;">
+    <button class="range-tab active" data-filter="all" onclick="setStatusFilter('all', this)">الكل</button>
+    <button class="range-tab" data-filter="active" onclick="setStatusFilter('active', this)">نشط</button>
+    <button class="range-tab" data-filter="pending" onclick="setStatusFilter('pending', this)">بانتظار</button>
+    <button class="range-tab" data-filter="expired" onclick="setStatusFilter('expired', this)">موقوف</button>
+  </div>
+
+  <div class="card" id="shopsList">
+    <div class="state-msg">جاري التحميل...</div>
+  </div>
+</div>
+
+<div id="loadingMsg" class="state-msg">جاري التحقق...</div>
+
+<script src="qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+// Fixes the "login screen flashes then disappears" issue when using the
+// phone/browser back button — see dashboard.html for full explanation.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
+
+// Secondary Firebase app instance — lets us create new shop-owner accounts
+// WITHOUT logging the admin out of their own session.
+const secondaryApp = firebase.initializeApp(firebase.app().options, "Secondary");
+const secondaryAuth = secondaryApp.auth();
+
+let isAdmin = false;
+
+auth.onAuthStateChanged(async user => {
+  document.getElementById('loadingMsg').style.display = 'none';
+
+  if (!user) {
+    document.getElementById('loginScreen').style.display = 'block';
+    return;
+  }
+
+  // Check this user is actually listed in the admins collection
+  const adminDoc = await db.collection('admins').doc(user.uid).get();
+  if (!adminDoc.exists) {
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('loginError').textContent = 'هذا الحساب ليس لديه صلاحية أدمن.';
+    await auth.signOut();
+    return;
+  }
+
+  isAdmin = true;
+  document.getElementById('adminScreen').style.display = 'block';
+  await loadShops();
+});
+
+function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err => {
+      errorEl.textContent = 'بيانات الدخول غير صحيحة.';
+      console.error(err);
+    });
+}
+
+function adminLogout() {
+  auth.signOut().then(() => window.location.reload());
+}
+
+function downloadQr() {
+  const canvas = document.getElementById('qrCanvas');
+  const link = document.createElement('a');
+  link.download = 'qr-code.png';
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+// ---- Load all shops ----
+let allShopsData = [];
+let statusFilter = 'all';
+
+async function loadShops() {
+  const snap = await db.collection('shops').get();
+  allShopsData = snap.docs.map(doc => ({ id: doc.id, info: doc.data().info || {} }));
+
+  // Update overview stats
+  const active = allShopsData.filter(s => s.info.subscriptionStatus === 'active').length;
+  const pending = allShopsData.filter(s => s.info.subscriptionStatus === 'pending').length;
+  const expired = allShopsData.filter(s => s.info.subscriptionStatus === 'expired').length;
+  document.getElementById('statTotal').textContent = allShopsData.length;
+  document.getElementById('statActive').textContent = active;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statExpired').textContent = expired;
+
+  renderExpiringBanner();
+  renderShopsList();
+}
+
+function renderExpiringBanner() {
+  const bannerEl = document.getElementById('expiringBanner');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const expiringSoon = allShopsData
+    .filter(s => s.info.subscriptionStatus === 'active' && s.info.subscriptionEndDate)
+    .map(s => {
+      const end = new Date(s.info.subscriptionEndDate);
+      end.setHours(0, 0, 0, 0);
+      const daysLeft = Math.round((end - today) / (1000 * 60 * 60 * 24));
+      return { ...s, daysLeft };
+    })
+    .filter(s => s.daysLeft <= 3)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  if (expiringSoon.length === 0) {
+    bannerEl.innerHTML = '';
+    return;
+  }
+
+  let rows = expiringSoon.map(s => {
+    const label = s.daysLeft < 0
+      ? `منتهي منذ ${Math.abs(s.daysLeft)} يوم`
+      : (s.daysLeft === 0 ? 'ينتهي اليوم' : `باقي ${s.daysLeft} يوم`);
+    return `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.06);">
+      <span>${s.info.name || s.info.email || '(بدون اسم)'}</span>
+      <strong>${label}</strong>
+    </div>`;
+  }).join('');
+
+  bannerEl.innerHTML = `
+    <div class="sub-banner sub-banner-warning" style="margin-bottom:16px;">
+      ⏰ <strong>${expiringSoon.length}</strong> كوفي محتاج متابعة (اشتراكهم قارب ينتهي أو انتهى):
+      <div style="margin-top:8px;">${rows}</div>
+    </div>
+  `;
+}
+
+function setStatusFilter(filter, btnEl) {
+  statusFilter = filter;
+  document.querySelectorAll('#shopsList').length; // no-op guard
+  document.querySelectorAll('.range-tab').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+  renderShopsList();
+}
+
+function renderShopsList() {
+  const listEl = document.getElementById('shopsList');
+  const query = (document.getElementById('shopSearchInput').value || '').trim().toLowerCase();
+
+  let filtered = allShopsData.filter(s => {
+    if (statusFilter !== 'all' && (s.info.subscriptionStatus || 'expired') !== statusFilter) return false;
+    if (query && !(s.info.name || '').toLowerCase().includes(query) && !(s.info.nameEn || '').toLowerCase().includes(query)) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="state-msg">لا توجد كوفيات مطابقة.</div>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(({ id, info }) => {
+    const active = info.subscriptionStatus === 'active';
+    const statusLabel = info.subscriptionStatus === 'pending' ? 'بانتظار التفعيل' : (active ? 'مفعّل ✓' : 'موقوف');
+    const waNumber = (info.whatsapp || '').replace(/[^0-9]/g, '');
+
+    html += `
+      <div class="dashboard-item" style="flex-wrap:wrap;">
+        <div class="grow">
+          <div class="item-name">${info.name || info.email || '(بدون اسم)'}</div>
+          <div class="item-desc">${info.location || ''} · ${statusLabel}</div>
+          <div>${getActivityBadge(info)}</div>
+          ${!active && info.suspensionReason ? `<div class="item-desc" style="color:#B3441E;">السبب: ${info.suspensionReason}</div>` : ''}
+          <div class="field" style="margin:8px 0 0;">
+            <label style="font-size:0.75rem;">تاريخ انتهاء الاشتراك</label>
+            <input type="date" value="${info.subscriptionEndDate || ''}" onchange="updateEndDate('${id}', this.value)" style="padding:6px 8px;">
+          </div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            ${waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" class="btn btn-ghost" style="padding:6px 12px; font-size:0.8rem; text-decoration:none;">💬 واتساب</a>` : ''}
+            <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.8rem;" onclick="toggleNotes('${id}')">📝 ملاحظات</button>
+            <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.8rem;" onclick="openPaymentsModal('${id}')">💰 المدفوعات</button>
+            <button class="btn btn-ghost" style="padding:6px 12px; font-size:0.8rem;" onclick="openEditModal('${id}')">✏️ تعديل</button>
+          </div>
+
+          <div id="notes-${id}" style="display:none; margin-top:10px;">
+            <textarea id="notesInput-${id}" rows="3" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:var(--radius); font-family:inherit;" placeholder="ملاحظاتك الخاصة عن هذا الكوفي..."></textarea>
+            <button class="btn" style="margin-top:6px; padding:6px 14px; font-size:0.85rem;" onclick="saveNotes('${id}')">حفظ الملاحظة</button>
+            <span id="notesStatus-${id}" style="font-size:0.8rem; color:#3D6B4F; margin-right:8px;"></span>
+          </div>
+        </div>
+        <button class="btn ${active ? 'btn-danger' : 'btn-ghost'}" onclick='toggleSubscription("${id}", ${active})'>
+          ${active ? 'إيقاف' : 'تفعيل'}
+        </button>
+      </div>
+    `;
+  });
+  listEl.innerHTML = html;
+}
+
+// Shows a colored badge for how recently a shop received a real order
+// (customer QR order or counter order) — 🟢 active / 🟡 slow / 🔴 inactive.
+// Shops that haven't received any order since this feature launched will
+// simply show "لم يُستخدم بعد" until their next order comes in.
+function getActivityBadge(info) {
+  if (!info.lastOrderAt || typeof info.lastOrderAt.toDate !== 'function') {
+    return `<span style="display:inline-block; font-size:0.75rem; font-weight:600; padding:3px 10px; border-radius:999px; margin-top:6px; background:#F1E9E0; color:var(--stone);">⚪ لم يُستخدم بعد</span>`;
+  }
+
+  const last = info.lastOrderAt.toDate();
+  const diffDays = Math.max(0, Math.floor((Date.now() - last.getTime()) / (1000 * 60 * 60 * 24)));
+
+  let dot, colorStyle;
+  if (diffDays <= 3) {
+    dot = '🟢'; colorStyle = 'background:#DCEEE0; color:#3D7A47;';
+  } else if (diffDays <= 14) {
+    dot = '🟡'; colorStyle = 'background:#FBEAD1; color:#A6650D;';
+  } else {
+    dot = '🔴'; colorStyle = 'background:#FBEAE5; color:#B3441E;';
+  }
+
+  const label = diffDays === 0 ? 'اليوم' : `قبل ${diffDays} يوم`;
+  return `<span style="display:inline-block; font-size:0.75rem; font-weight:600; padding:3px 10px; border-radius:999px; margin-top:6px; ${colorStyle}">${dot} آخر طلب: ${label}</span>`;
+}
+
+async function updateEndDate(shopId, value) {
+  await db.collection('shops').doc(shopId).update({ 'info.subscriptionEndDate': value || null });
+}
+
+// ---- Private admin notes per shop ----
+async function toggleNotes(shopId) {
+  const box = document.getElementById(`notes-${shopId}`);
+  const isOpening = box.style.display === 'none';
+  box.style.display = isOpening ? 'block' : 'none';
+
+  if (isOpening) {
+    const doc = await db.collection('shops').doc(shopId).collection('adminNotes').doc('main').get();
+    document.getElementById(`notesInput-${shopId}`).value = doc.exists ? (doc.data().text || '') : '';
+  }
+}
+
+async function saveNotes(shopId) {
+  const text = document.getElementById(`notesInput-${shopId}`).value.trim();
+  await db.collection('shops').doc(shopId).collection('adminNotes').doc('main').set({
+    text,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  const statusEl = document.getElementById(`notesStatus-${shopId}`);
+  statusEl.textContent = 'تم الحفظ ✓';
+  setTimeout(() => { statusEl.textContent = ''; }, 2000);
+}
+
+// ---- Payment log per shop ----
+async function openPaymentsModal(shopId) {
+  const shop = allShopsData.find(s => s.id === shopId);
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'paymentsOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('paymentsOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 16px;">المدفوعات — ${shop ? (shop.info.name || '') : ''}</h3>
+
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="number" id="paymentAmount" placeholder="المبلغ (ر.ع)" style="flex:1; padding:10px; border:1px solid var(--line); border-radius:var(--radius);">
+        <input type="text" id="paymentNote" placeholder="ملاحظة (اختياري)" style="flex:1; padding:10px; border:1px solid var(--line); border-radius:var(--radius);">
+      </div>
+      <button class="btn" style="width:100%; margin-bottom:16px;" onclick="addPayment('${shopId}')">إضافة دفعة</button>
+      <div id="paymentError" class="error-msg"></div>
+
+      <h4 style="margin-bottom:10px;">السجل</h4>
+      <div id="paymentsList"><div class="state-msg">جاري التحميل...</div></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  await loadPayments(shopId);
+}
+
+async function addPayment(shopId) {
+  const amount = parseFloat(document.getElementById('paymentAmount').value);
+  const note = document.getElementById('paymentNote').value.trim();
+  const errorEl = document.getElementById('paymentError');
+
+  if (isNaN(amount) || amount <= 0) {
+    errorEl.textContent = 'أدخل مبلغ صحيح.';
+    return;
+  }
+  errorEl.textContent = '';
+
+  try {
+    await db.collection('shops').doc(shopId).collection('payments').add({
+      amount,
+      note: note || null,
+      recordedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById('paymentAmount').value = '';
+    document.getElementById('paymentNote').value = '';
+    await loadPayments(shopId);
+  } catch (err) {
+    console.error('addPayment failed:', err);
+    errorEl.textContent = 'تعذر إضافة الدفعة: ' + err.message;
+  }
+}
+
+async function loadPayments(shopId) {
+  const listEl = document.getElementById('paymentsList');
+  const snap = await db.collection('shops').doc(shopId).collection('payments')
+    .orderBy('recordedAt', 'desc').get();
+
+  if (snap.empty) {
+    listEl.innerHTML = '<div class="state-msg">لا توجد دفعات مسجّلة بعد.</div>';
+    return;
+  }
+
+  let total = 0;
+  let html = '';
+  snap.forEach(doc => {
+    const p = doc.data();
+    total += Number(p.amount) || 0;
+    const dateStr = p.recordedAt ? p.recordedAt.toDate().toLocaleDateString('ar-OM') : '';
+    html += `
+      <div class="top-item-row">
+        <span>${dateStr}${p.note ? ' · ' + p.note : ''}</span>
+        <span>${Number(p.amount).toFixed(2)} ر.ع</span>
+      </div>
+    `;
+  });
+  html = `<div class="top-item-row" style="font-weight:600;"><span>الإجمالي</span><span>${total.toFixed(2)} ر.ع</span></div>` + html;
+  listEl.innerHTML = html;
+}
+
+// ---- Edit shop info directly ----
+function openEditModal(shopId) {
+  const shop = allShopsData.find(s => s.id === shopId);
+  if (!shop) return;
+  const info = shop.info;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'editOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('editOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 16px;">تعديل بيانات الكوفي</h3>
+
+      <div class="field">
+        <label>اسم الكوفي (عربي)</label>
+        <input type="text" id="editName" value="${(info.name || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>اسم الكوفي (إنجليزي)</label>
+        <input type="text" id="editNameEn" value="${(info.nameEn || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>الموقع</label>
+        <input type="text" id="editLocation" value="${(info.location || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>شعار نصي قصير (عربي)</label>
+        <input type="text" id="editTagline" value="${(info.tagline || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>شعار نصي قصير (إنجليزي)</label>
+        <input type="text" id="editTaglineEn" value="${(info.taglineEn || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>رقم الواتساب</label>
+        <input type="tel" id="editWhatsapp" value="${(info.whatsapp || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="editPhone" value="${(info.phone || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="editEmail" value="${(info.email || '').replace(/"/g, '&quot;')}">
+      </div>
+      <div class="field">
+        <label>اللون المميز</label>
+        <input type="color" id="editColor" value="${info.primaryColor || '#8B5A2B'}" style="width:80px; padding:4px;">
+      </div>
+      <div class="field">
+        <label>الوقت التقريبي للتحضير (دقائق)</label>
+        <input type="number" id="editPrepTime" value="${info.estimatedMinutes || 10}">
+      </div>
+
+      <button class="btn" style="width:100%;" onclick="saveEditedShop('${shopId}')">حفظ التعديلات</button>
+      <div id="editError" class="error-msg"></div>
+
+      <div style="border-top:1px solid var(--line); margin-top:20px; padding-top:16px;">
+        <button class="btn btn-ghost" style="width:100%;" onclick="resetOwnerPassword('${(info.email || '').replace(/'/g, "\\'")}')">✉️ إرسال رابط إعادة تعيين كلمة المرور له</button>
+        <div id="resetPwStatus" style="font-size:0.85rem; margin-top:8px;"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--line); margin-top:16px; padding-top:16px; text-align:center;">
+        <div style="font-size:0.85rem; color:var(--stone); margin-bottom:10px;">باركود قائمته</div>
+        <div style="display:inline-flex; align-items:flex-end; gap:8px;">
+          <canvas id="adminEditQrCanvas"></canvas>
+          <button onclick="copyAdminMenuLink()" title="نسخ الرابط" style="background:var(--paper-dim); border:1px solid var(--line); border-radius:10px; width:38px; height:38px; font-size:1.1rem; cursor:pointer; flex-shrink:0;">📋</button>
+        </div>
+        <div id="adminMenuUrlText" style="font-size:0.78rem; color:var(--stone); word-break:break-all; margin-top:10px;"></div>
+        <div id="adminCopyLinkStatus" style="font-size:0.82rem; color:#3D6B4F; margin-top:6px;"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const menuUrl = window.location.origin + window.location.pathname.replace('admin.html', '') + 'menu.html?shop=' + shopId;
+  document.getElementById('adminMenuUrlText').textContent = menuUrl;
+  if (typeof QRCode !== 'undefined') {
+    QRCode.toCanvas(document.getElementById('adminEditQrCanvas'), menuUrl, { width: 160 }).catch(err => console.error(err));
+  }
+}
+
+async function copyAdminMenuLink() {
+  const url = document.getElementById('adminMenuUrlText').textContent;
+  const statusEl = document.getElementById('adminCopyLinkStatus');
+  try {
+    await navigator.clipboard.writeText(url);
+    statusEl.textContent = 'تم نسخ الرابط ✓';
+  } catch (err) {
+    const tempInput = document.createElement('textarea');
+    tempInput.value = url;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    try {
+      document.execCommand('copy');
+      statusEl.textContent = 'تم نسخ الرابط ✓';
+    } catch (e) {
+      statusEl.textContent = 'تعذر النسخ، انسخه يدوياً من الأعلى';
+    }
+    document.body.removeChild(tempInput);
+  }
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+async function resetOwnerPassword(email) {
+  const statusEl = document.getElementById('resetPwStatus');
+  if (!email) {
+    statusEl.style.color = '#B3441E';
+    statusEl.textContent = 'ما فيه إيميل مسجّل لهذا الكوفي.';
+    return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    statusEl.style.color = '#3D6B4F';
+    statusEl.textContent = `تم إرسال رابط إعادة التعيين إلى ${email} ✓`;
+  } catch (err) {
+    console.error(err);
+    statusEl.style.color = '#B3441E';
+    statusEl.textContent = 'تعذر إرسال الرابط. تأكد من صحة الإيميل.';
+  }
+}
+
+async function saveEditedShop(shopId) {
+  const errorEl = document.getElementById('editError');
+  const name = document.getElementById('editName').value.trim();
+
+  if (!name) {
+    errorEl.textContent = 'اسم الكوفي مطلوب.';
+    return;
+  }
+
+  try {
+    await db.collection('shops').doc(shopId).update({
+      'info.name': name,
+      'info.nameEn': document.getElementById('editNameEn').value.trim(),
+      'info.location': document.getElementById('editLocation').value.trim(),
+      'info.tagline': document.getElementById('editTagline').value.trim(),
+      'info.taglineEn': document.getElementById('editTaglineEn').value.trim(),
+      'info.whatsapp': document.getElementById('editWhatsapp').value.trim(),
+      'info.phone': document.getElementById('editPhone').value.trim(),
+      'info.email': document.getElementById('editEmail').value.trim(),
+      'info.primaryColor': document.getElementById('editColor').value,
+      'info.estimatedMinutes': parseInt(document.getElementById('editPrepTime').value) || 10
+    });
+    document.getElementById('editOverlay').remove();
+    await loadShops();
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'حدث خطأ أثناء الحفظ.';
+  }
+}
+
+// ---- Toggle a shop's subscription on/off ----
+async function toggleSubscription(shopId, currentlyActive) {
+  const updateData = {
+    'info.subscriptionStatus': currentlyActive ? 'expired' : 'active'
+  };
+
+  if (currentlyActive) {
+    // Being suspended — ask why, so the owner can see the reason on their dashboard
+    const reason = prompt('ليش تبي توقف هذا الكوفي؟ (بيظهر السبب لصاحب الكوفي)');
+    if (reason === null) return; // admin cancelled the prompt — abort the whole action
+    updateData['info.suspensionReason'] = reason || 'غير محدد';
+  } else {
+    // Being reactivated — clear any old suspension reason
+    updateData['info.suspensionReason'] = firebase.firestore.FieldValue.delete();
+  }
+
+  await db.collection('shops').doc(shopId).update(updateData);
+  await loadShops();
+}
+
+// ---- Create a brand new shop (auth account + Firestore doc) ----
+// ===================== Global category icons (shown on every shop's menu) =====================
+async function createShop() {
+  const errorEl = document.getElementById('createError');
+  const successEl = document.getElementById('createSuccess');
+  errorEl.textContent = '';
+  successEl.textContent = '';
+
+  const name = document.getElementById('newShopName').value.trim();
+  const location = document.getElementById('newShopLocation').value.trim();
+  const color = document.getElementById('newShopColor').value;
+  const email = document.getElementById('newOwnerEmail').value.trim();
+  const password = document.getElementById('newOwnerPassword').value;
+
+  if (!name || !email || !password) {
+    errorEl.textContent = 'الرجاء تعبئة اسم الكوفي وإيميل وكلمة مرور صاحب الكوفي.';
+    return;
+  }
+  if (password.length < 6) {
+    errorEl.textContent = 'كلمة المرور لازم تكون 6 أحرف على الأقل.';
+    return;
+  }
+
+  try {
+    // Create the owner's account using the SECONDARY app instance
+    // so the admin's own session stays logged in.
+    const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+    const newUid = cred.user.uid;
+
+    // Immediately sign out of the secondary instance (cleanup)
+    await secondaryAuth.signOut();
+
+    // Create the shop's Firestore document, ID = new owner's UID
+    await db.collection('shops').doc(newUid).set({
+      info: {
+        name,
+        location,
+        primaryColor: color,
+        logo: '',
+        subscriptionStatus: 'active'
+      }
+    });
+
+    // Build the public menu link for this shop, save it, and generate its QR code
+    const menuUrl = window.location.origin + window.location.pathname.replace('admin.html', '') + 'menu.html?shop=' + newUid;
+    await db.collection('shops').doc(newUid).update({ 'info.menuUrl': menuUrl });
+
+    successEl.textContent = `تم إنشاء الكوفي بنجاح ✓`;
+
+    const qrDiv = document.getElementById('qrResult');
+    qrDiv.innerHTML = `
+      <canvas id="qrCanvas"></canvas>
+      <div style="font-size:0.8rem; color:var(--stone); word-break:break-all; margin:8px 0;">${menuUrl}</div>
+      <button class="btn btn-ghost" onclick="downloadQr()">تحميل الباركود</button>
+    `;
+    try {
+      if (typeof QRCode === 'undefined') throw new Error('مكتبة QR ما تحمّلت من الإنترنت');
+      await QRCode.toCanvas(document.getElementById('qrCanvas'), menuUrl, { width: 200 });
+    } catch (qrErr) {
+      console.error('QR generation failed:', qrErr);
+      qrDiv.innerHTML += `<div class="error-msg">تعذر توليد الباركود: ${qrErr.message}</div>`;
+    }
+
+    // Reset form
+    document.getElementById('newShopName').value = '';
+    document.getElementById('newShopLocation').value = '';
+    document.getElementById('newOwnerEmail').value = '';
+    document.getElementById('newOwnerPassword').value = '';
+
+    await loadShops();
+
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'auth/email-already-in-use') {
+      errorEl.textContent = 'هذا الإيميل مستخدم مسبقاً لكوفي آخر.';
+    } else {
+      errorEl.textContent = 'حدث خطأ أثناء الإنشاء. حاول مرة أخرى.';
+    }
+  }
+}
+</script>
+
+</body>
+</html>

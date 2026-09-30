@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cafeoman">
+<meta name="theme-color" content="#6B4226">
+<script src="pwa-install.js" defer></script>
+
+<title>القائمة</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <div class="state-msg">جاري تحميل القائمة...</div>
+</div>
+
+<button class="lang-toggle" id="langToggle" onclick="toggleLang()" style="display:none;">EN</button>
+
+<!-- Floating cart bar -->
+<div class="cart-bar" id="cartBar" style="display:none;" onclick="openCartModal()">
+  <span id="cartCount">0 أصناف</span>
+  <span id="cartTotal">0.00 ر.ع</span>
+</div>
+
+<!-- Persistent order status bar (shown after an order is placed) -->
+<div class="status-bar" id="orderStatusBar" style="display:none;" onclick="openStatusModal()">
+  <span id="statusBarText"></span>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+let shopId = null;
+let shopRooms = [];
+let shopInfo = {};
+let cart = {}; // { itemId: { name, price, qty } }
+let itemMeta = {}; // { itemId: { name, price } } — used to safely rebuild controls without re-escaping strings
+let suggestedItemIds = [];
+let currentLang = localStorage.getItem('menuLang') || 'ar';
+let orderTypePreset = false; // true once the person picked table/car/delivery from the entry screen
+let giftEntryMode = false;   // true if they picked "أهدِ صديق" from the entry screen
+let pendingMenuCategories = null; // holds the fetched/grouped items while the entry screen is showing
+let pendingMenuShopName = '';
+let pendingEntryTypesEnabled = null;
+let pendingEntryGiftAvailable = false;
+let pendingCoverStyle = '';
+
+const translations = {
+  loadingMenu: { ar: 'جاري تحميل القائمة...', en: 'Loading menu...' },
+  invalidLink: { ar: 'رابط غير صحيح — لا يوجد معرّف كوفي.', en: 'Invalid link — no shop ID found.' },
+  shopNotFound: { ar: 'هذا الكوفي غير موجود.', en: 'This shop does not exist.' },
+  menuUnavailable: { ar: 'القائمة غير متاحة حالياً.', en: 'Menu is currently unavailable.' },
+  noItems: { ar: 'لا توجد أصناف بالقائمة حالياً.', en: 'No items on the menu yet.' },
+  loadError: { ar: 'حدث خطأ أثناء تحميل القائمة.', en: 'An error occurred while loading the menu.' },
+  unavailableTag: { ar: 'غير متاح', en: 'Unavailable' },
+  itemsWord: { ar: 'أصناف', en: 'items' },
+  currency: { ar: 'ر.ع', en: 'OMR' },
+  reviewOrder: { ar: 'مراجعة الطلب', en: 'Review order' },
+  total: { ar: 'الإجمالي', en: 'Total' },
+  yourName: { ar: 'اسمك', en: 'Your name' },
+  namePlaceholder: { ar: 'مثال: أحمد', en: 'e.g. Ahmed' },
+  tableNumber: { ar: 'رقم الطاولة (اختياري)', en: 'Table number (optional)' },
+  tablePlaceholder: { ar: 'مثال: 5', en: 'e.g. 5' },
+  notesLabel: { ar: 'ملاحظات (اختياري)', en: 'Notes (optional)' },
+  paymentMethodLbl: { ar: 'طريقة الدفع', en: 'Payment method' },
+  payCashInstruction: { ar: 'الرجاء الدفع عند المحاسب كاش', en: 'Please pay in cash at the counter' },
+  payCardInstruction: { ar: 'الرجاء الدفع عند المحاسب بالفيزا', en: 'Please pay by card at the counter' },
+  payTransferInstruction: { ar: 'تم استلام وصل التحويل، بانتظار تأكيد الكوفي ✓', en: 'Transfer receipt received, awaiting confirmation from the shop ✓' },
+  bankTransferInstructions: { ar: 'حوّل المبلغ على الرقم التالي:', en: 'Transfer the amount to the following number:' },
+  attachReceiptBtn: { ar: 'إرفاق وصل التحويل', en: 'Attach transfer receipt' },
+  uploadingReceipt: { ar: 'جاري رفع الوصل...', en: 'Uploading receipt...' },
+  receiptUploaded: { ar: 'تم إرفاق الوصل ✓', en: 'Receipt attached ✓' },
+  receiptUploadFailed: { ar: 'تعذر رفع الوصل، حاول مرة أخرى.', en: 'Could not upload the receipt. Please try again.' },
+  receiptRequiredError: { ar: 'الرجاء إرفاق وصل التحويل قبل إرسال الطلب.', en: 'Please attach the transfer receipt before sending the order.' },
+  outOfStockError: { ar: 'نفذت الكمية من', en: 'Out of stock' },
+  sendingOrderLoading: { ar: '⏳ جاري الإرسال...', en: '⏳ Sending...' },
+  cancelOrderBtn: { ar: '❌ إلغاء الطلب', en: '❌ Cancel order' },
+  confirmCancelOrder: { ar: 'متأكد تريد تلغي طلبك؟', en: 'Are you sure you want to cancel your order?' },
+  cancelOrderFailed: { ar: 'تعذر إلغاء الطلب، حاول مرة أخرى.', en: 'Could not cancel the order. Please try again.' },
+  yesCancelBtn: { ar: 'نعم، ألغِ الطلب', en: 'Yes, cancel it' },
+  noKeepBtn: { ar: 'تراجع', en: 'No, keep it' },
+  loyaltyPhoneLbl: { ar: 'رقم جوالك (لجمع نقاط الولاء) - اختياري', en: 'Your phone (for loyalty points) - optional' },
+  rewardReadyMsg: { ar: 'عندك مكافأة جاهزة! أخبر الموظف عند الاستلام:', en: 'You have a reward ready! Tell the staff when you pick up:' },
+  rewardReadyPopupTitle: { ar: 'مبروك! 🎉 طلبك هذا مجاني', en: 'Congrats! 🎉 This order is free' },
+  okBtn: { ar: 'حسناً', en: 'OK' },
+  pointsProgressMsg: { ar: 'باقي لك {count} طلبات على المكافأة', en: '{count} more orders until your reward' },
+  payCash: { ar: '💵 نقداً', en: '💵 Cash' },
+  payTransfer: { ar: '🏦 تحويل بنكي', en: '🏦 Bank transfer' },
+  payCard: { ar: '💳 فيزا / بطاقة', en: '💳 Visa / Card' },
+  notesPlaceholder: { ar: 'مثال: بدون سكر', en: 'e.g. no sugar' },
+  sendOrder: { ar: 'إرسال الطلب', en: 'Send order' },
+  enterNameError: { ar: 'الرجاء إدخال اسمك.', en: 'Please enter your name.' },
+  orderSendError: { ar: 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.', en: 'Something went wrong sending your order. Please try again.' },
+  orderSent: { ar: 'تم إرسال طلبك!', en: 'Your order has been sent!' },
+  close: { ar: 'إغلاق', en: 'Close' },
+  sendAsGiftLink: { ar: 'أرسلها كهدية بدلاً من كذا', en: 'Send this as a gift instead' },
+  giftModalTitle: { ar: 'أهدِ صديق', en: 'Gift a friend' },
+  giftModalSubtitle: { ar: 'الدفع للهدية يكون بالتحويل البنكي بس.', en: 'Gift payments are by bank transfer only.' },
+  giftRecipientNameLbl: { ar: 'اسم المُهدى له', en: "Recipient's name" },
+  giftRecipientPhoneLbl: { ar: 'رقم جوال المُهدى له', en: "Recipient's phone" },
+  giftPersonalMessageLbl: { ar: 'رسالة لصديقك (اختياري)', en: 'A message for your friend (optional)' },
+  giftPersonalMessagePlaceholder: { ar: 'اكتب رسالتك هنا...', en: 'Write your message here...' },
+  giftFieldsError: { ar: 'الرجاء إدخال اسم ورقم جوال المُهدى له.', en: "Please enter the recipient's name and phone number." },
+  sendGiftBtn: { ar: 'إرسال الهدية', en: 'Send gift' },
+  giftSentTitle: { ar: 'تم إرسال هديتك!', en: 'Your gift has been sent!' },
+  giftSentMsg: { ar: 'المقهى بيتواصل مباشرة مع', en: 'The shop will contact' },
+  giftNotFound: { ar: 'هذي الهدية غير موجودة.', en: 'This gift could not be found.' },
+  giftBoxTitle: { ar: 'عندك هدية!', en: 'You have a gift!' },
+  tapToOpenGift: { ar: 'اضغط لفتح هديتك', en: 'Tap to open your gift' },
+  giftContentsLbl: { ar: 'محتويات الهدية', en: 'Gift contents' },
+  giftFreeLabel: { ar: 'هدية مجانية', en: 'Free gift' },
+  giftOrderNote: { ar: 'هدية إلى', en: 'Gift to' },
+  redeemingGift: { ar: 'جاري الاستلام...', en: 'Receiving...' },
+  claimGiftBtn: { ar: 'استلام الهدية', en: 'Receive gift' },
+  claimGiftHint: { ar: 'اضغط استلام الهدية عندما تصل إلى المقهى', en: 'Press receive gift when you arrive at the shop' },
+  giftClaimedSuccess: { ar: 'تم استلام هديتك، تفضل بالجلوس بانتظار تحضيرها ✓', en: 'Your gift has been received — please have a seat while it\'s prepared ✓' },
+  giftAlreadyClaimed: { ar: 'تم استلام هذي الهدية من قبل.', en: 'This gift has already been received.' },
+  giftEntryBtn: { ar: 'أهدِ صديق', en: 'Gift a friend' },
+  giftPickItemsHint: { ar: 'اختر الأصناف اللي تبي تهديها من القائمة تحت، وبعدين اضغط هذا الزر مرة ثانية.', en: 'Pick the items you want to gift from the menu below, then tap this button again.' },
+  orderCancelledByShopMsg: { ar: 'تم إلغاء طلبك من قبل الكوفي', en: 'Your order was cancelled by the shop' },
+  yourOrderStatus: { ar: 'حالة طلبك', en: 'Your order status' },
+  etaText: { ar: 'الوقت المتوقع', en: 'Estimated time' },
+  minuteWord: { ar: 'دقيقة', en: 'min' },
+  orderPickedUp: { ar: 'طلب جاهز', en: 'Order picked up' },
+  rateOrderPrompt: { ar: 'وش رأيك بطلبك؟', en: 'How was your order?' },
+  ratingsWord: { ar: 'تقييم', en: 'ratings' },
+  reserveRoomBtn: { ar: 'احجز قاعة', en: 'Reserve a room' },
+  roomFieldLbl: { ar: 'القاعة', en: 'Room' },
+  dateFieldLbl: { ar: 'التاريخ', en: 'Date' },
+  timeFieldLbl: { ar: 'الوقت', en: 'Time' },
+  guestsFieldLbl: { ar: 'عدد الأشخاص', en: 'Number of guests' },
+  phoneFieldLbl: { ar: 'رقم الهاتف', en: 'Phone number' },
+  confirmReservationBtn: { ar: 'تأكيد الحجز', en: 'Confirm reservation' },
+  reserveNameRequired: { ar: 'الرجاء إدخال اسمك ورقم هاتفك.', en: 'Please enter your name and phone number.' },
+  reservationConfirmed: { ar: 'تم تأكيد حجزك ✓', en: 'Your reservation is confirmed ✓' },
+  slotTakenError: { ar: 'عذراً، هذا الوقت محجوز بالفعل. اختر وقت ثاني.', en: 'Sorry, that time slot is already booked. Please choose another.' },
+  skipRating: { ar: 'تخطي', en: 'Skip' },
+  sendRatingBtn: { ar: 'إرسال التقييم', en: 'Submit rating' },
+  sendingMsg: { ar: 'جاري الإرسال...', en: 'Sending...' },
+  addToCartBtn: { ar: 'أضف للسلة', en: 'Add to cart' },
+  openingHoursLbl: { ar: 'مواعيد العمل', en: 'Opening hours' },
+  searchPlaceholder: { ar: '🔍 دور على صنف...', en: '🔍 Search menu...' },
+  suggestAddTitle: { ar: '💡 حاب تضيف كمان؟', en: '💡 Want to add this too?' },
+  addBtn: { ar: 'إضافة', en: 'Add' },
+  stepReceived: { ar: 'استلم طلبك', en: 'Order received' },
+  stepPreparing: { ar: 'جاري التحضير', en: 'Preparing' },
+  stepReady: { ar: 'الطلب جاهز', en: 'Ready' },
+  barReceived: { ar: '✅ تم استلام طلبك', en: '✅ Order received' },
+  barPreparing: { ar: '🔥 جاري تحضير طلبك', en: '🔥 Preparing your order' },
+  barReady: { ar: '🎉 طلبك جاهز — تفضل استلمه', en: '🎉 Your order is ready — please pick it up' },
+  orderFromCar: { ar: 'طلب من السيارة', en: 'Order from car' },
+  orderFromDelivery: { ar: 'طلب خارجي', en: 'External order' },
+  deliveryPhoneLbl: { ar: 'رقم الواتساب', en: 'WhatsApp number' },
+  deliveryMapsLbl: { ar: 'رابط موقعك على خرائط جوجل', en: 'Your Google Maps location link' },
+  deliveryMapsPlaceholder: { ar: 'https://maps.google.com/...', en: 'https://maps.google.com/...' },
+  deliveryWilayatLbl: { ar: 'الولاية', en: 'Wilayat' },
+  deliveryAreaLbl: { ar: 'المنطقة', en: 'Area' },
+  deliveryHouseNumberLbl: { ar: 'رقم البيت (اختياري)', en: 'House number (optional)' },
+  deliveryFieldsError: { ar: 'الرجاء تعبئة رقم الواتساب ورابط الموقع والولاية والمنطقة.', en: 'Please fill in the WhatsApp number, maps link, wilayat, and area.' },
+  orderFromTable: { ar: 'طلب من الطاولة', en: 'Order from table' },
+  carNumber: { ar: 'رقم السيارة', en: 'Car plate number' },
+  carNumberPlaceholder: { ar: 'مثال: 12345', en: 'e.g. 12345' },
+  carColor: { ar: 'لون ونوع السيارة', en: 'Car color & model' },
+  carColorPlaceholder: { ar: 'مثال: تويوتا بيضاء', en: 'e.g. White Toyota' },
+  carFieldsError: { ar: 'الرجاء إدخال رقم السيارة ولونها.', en: 'Please enter your car plate number and color.' },
+  bestSellerTag: { ar: 'الأكثر طلباً', en: 'Best seller' }
+};
+
+function t(key) {
+  return (translations[key] && translations[key][currentLang]) || key;
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('menuLang', currentLang);
+  applyLangDirection();
+  loadMenu();
+}
+
+function applyLangDirection() {
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('langToggle').textContent = currentLang === 'ar' ? 'EN' : 'عربي';
+  document.getElementById('langToggle').style.display = 'block';
+}
+
+async function showGiftViewPage(giftId) {
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="state-msg">${t('loadingMenu')}</div>`;
+
+  const giftDoc = await db.collection('shops').doc(shopId).collection('giftCards').doc(giftId).get();
+
+  if (!giftDoc.exists) {
+    app.innerHTML = `<div class="state-msg">${t('giftNotFound')}</div>`;
+    return;
+  }
+
+  const gift = giftDoc.data();
+  const shopName = (currentLang === 'en' && shopInfo.nameEn) ? shopInfo.nameEn : (shopInfo.name || '');
+  const itemsHtml = (gift.items || []).map(i => {
+    const iName = (currentLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+    return `<div style="display:flex; justify-content:space-between; padding:6px 0; font-size:0.95rem;"><span>${iName}</span><span style="color:var(--stone);">×${i.qty}</span></div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="wrap" style="padding-top:50px; text-align:center;">
+      <div id="giftBoxWrap" onclick="openGiftBox()" style="cursor:pointer;">
+        <div id="giftBoxEmoji" class="gift-box-pulse" style="font-size:5rem; margin-bottom:10px;">🎁</div>
+        <p style="color:var(--stone); margin-bottom:4px;">${shopName}</p>
+        <p id="giftTapHint" style="font-weight:600;">${t('tapToOpenGift')}</p>
+      </div>
+      <div id="giftContentsWrap" style="display:none;">
+        <h2 style="margin-bottom:4px;">${t('giftBoxTitle')}</h2>
+        <p style="color:var(--stone); margin-bottom:24px;">${shopName}</p>
+        <div class="card" style="text-align:right;">
+          ${gift.personalMessage ? `<p style="font-style:italic; color:var(--ink); margin-bottom:16px; padding-bottom:16px; border-bottom:1px dashed var(--line);">"${gift.personalMessage}"</p>` : ''}
+          <div style="font-weight:700; margin-bottom:8px;">${t('giftContentsLbl')}</div>
+          ${itemsHtml}
+          <div style="text-align:center; font-weight:700; color:#3D7A47; margin-top:16px; padding-top:12px; border-top:1px solid var(--line); font-size:1.1rem;">🎉 ${t('giftFreeLabel')}</div>
+          <div id="giftClaimArea" style="margin-top:20px;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // The claim button/area is built once and slotted in when the box opens,
+  // keeping this exactly the same as before — just revealed after the tap.
+  const claimAreaHtml = gift.redeemed
+    ? `<div style="color:#B3441E; font-weight:700;">✓ ${t('giftAlreadyClaimed')}</div>`
+    : `<button class="btn" id="claimGiftBtn" style="width:100%;" onclick="claimGift('${giftId}')">✅ ${t('claimGiftBtn')}</button>
+       <p style="font-size:0.78rem; color:var(--stone); margin-top:8px;">${t('claimGiftHint')}</p>`;
+  document.getElementById('giftClaimArea').innerHTML = claimAreaHtml;
+}
+
+function openGiftBox() {
+  const boxWrap = document.getElementById('giftBoxWrap');
+  const emoji = document.getElementById('giftBoxEmoji');
+  const contentsWrap = document.getElementById('giftContentsWrap');
+  if (!boxWrap || boxWrap.style.pointerEvents === 'none') return;
+
+  boxWrap.style.pointerEvents = 'none';
+  emoji.classList.remove('gift-box-pulse');
+  emoji.classList.add('gift-box-opening');
+  document.getElementById('giftTapHint').style.opacity = '0';
+
+  setTimeout(() => {
+    boxWrap.style.display = 'none';
+    contentsWrap.style.display = 'block';
+    contentsWrap.classList.add('gift-contents-reveal');
+  }, 550);
+}
+
+async function claimGift(giftId) {
+  const btn = document.getElementById('claimGiftBtn');
+  const claimArea = document.getElementById('giftClaimArea');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = t('redeemingGift');
+
+  const giftRef = db.collection('shops').doc(shopId).collection('giftCards').doc(giftId);
+  const orderRef = db.collection('shops').doc(shopId).collection('orders').doc();
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const freshGift = await tx.get(giftRef);
+      if (!freshGift.exists || freshGift.data().redeemed) {
+        throw new Error('ALREADY_REDEEMED');
+      }
+      const g = freshGift.data();
+
+      tx.update(giftRef, { redeemed: true, redeemedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+      tx.set(orderRef, {
+        orderType: 'table',
+        tableNumber: null,
+        carNumber: null,
+        carColor: null,
+        notes: `${t('giftOrderNote')}: ${g.recipientName || ''}`,
+        paymentMethod: 'transfer',
+        isGiftOrder: true,
+        receiptUrl: g.receiptUrl || null,
+        loyaltyPhone: null,
+        loyaltyRewardReady: false,
+        items: g.items,
+        total: g.total,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    claimArea.innerHTML = `<div style="color:#3D7A47; font-weight:700;">✅ ${t('giftClaimedSuccess')}</div>`;
+  } catch (err) {
+    console.error('Gift claim failed:', err);
+    claimArea.innerHTML = `<div style="color:#B3441E; font-weight:700;">✓ ${t('giftAlreadyClaimed')}</div>`;
+  }
+}
+
+async function loadMenu() {
+  const app = document.getElementById('app');
+  const params = new URLSearchParams(window.location.search);
+  shopId = params.get('shop');
+  app.innerHTML = `<div class="state-msg">${t('loadingMenu')}</div>`;
+
+  if (!shopId) {
+    app.innerHTML = `<div class="state-msg">${t('invalidLink')}</div>`;
+    return;
+  }
+
+  try {
+    const shopDoc = await db.collection('shops').doc(shopId).get();
+
+    if (!shopDoc.exists) {
+      app.innerHTML = `<div class="state-msg">${t('shopNotFound')}</div>`;
+      return;
+    }
+
+    const shop = shopDoc.data();
+    shopInfo = shop.info || {};
+
+    const giftId = params.get('gift');
+    if (giftId) {
+      if (shopInfo.primaryColor) {
+        document.documentElement.style.setProperty('--accent', shopInfo.primaryColor);
+      }
+      await showGiftViewPage(giftId);
+      return;
+    }
+
+    const isManuallyActive = shopInfo.subscriptionStatus === 'active';
+    const pastEndDate = shopInfo.subscriptionEndDate && new Date(shopInfo.subscriptionEndDate) < new Date(new Date().toDateString());
+    const isEffectivelyActive = isManuallyActive && !pastEndDate;
+
+    if (!isEffectivelyActive) {
+      app.innerHTML = `<div class="state-msg">${t('menuUnavailable')}</div>`;
+      return;
+    }
+
+    if (shopInfo.primaryColor) {
+      document.documentElement.style.setProperty('--accent', shopInfo.primaryColor);
+    }
+    const shopName = (currentLang === 'en' && shopInfo.nameEn) ? shopInfo.nameEn : (shopInfo.name || 'Menu');
+    document.title = shopName;
+
+    const [menuSnap, roomsSnap] = await Promise.all([
+      db.collection('shops').doc(shopId).collection('menu').orderBy('category').get(),
+      db.collection('shops').doc(shopId).collection('rooms').get()
+    ]);
+    shopRooms = roomsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const categories = {};
+    suggestedItemIds = [];
+    menuSnap.forEach(doc => {
+      const item = doc.data();
+      if (item.hidden === true) return; // fully hidden from customers, skip entirely
+      const catAr = item.category || 'أخرى';
+      const catDisplay = (currentLang === 'en' && item.categoryEn) ? item.categoryEn : catAr;
+      if (!categories[catDisplay]) categories[catDisplay] = [];
+      categories[catDisplay].push({ id: doc.id, ...item });
+    });
+
+    const coverStyle = shopInfo.coverImage ? `style="background-image:url('${shopInfo.coverImage}')"` : '';
+
+    // Only worth asking upfront if there's an actual choice to make —
+    // more than one order type, or a gift option alongside at least one type.
+    const entryTypesEnabled = {
+      table: (shopInfo.orderTypes ? shopInfo.orderTypes.table !== false : true),
+      car: (shopInfo.orderTypes ? shopInfo.orderTypes.car !== false : true),
+      delivery: (shopInfo.orderTypes ? shopInfo.orderTypes.delivery === true : false)
+    };
+    const entryGiftAvailable = shopInfo.paymentMethods && shopInfo.paymentMethods.transfer !== false;
+    const entryTypeCount = Object.values(entryTypesEnabled).filter(Boolean).length;
+    const showEntryChoice = entryTypeCount > 1 || (entryTypeCount >= 1 && entryGiftAvailable);
+
+    pendingMenuCategories = categories;
+    pendingMenuShopName = shopName;
+    pendingEntryTypesEnabled = entryTypesEnabled;
+    pendingEntryGiftAvailable = entryGiftAvailable;
+    pendingCoverStyle = coverStyle;
+
+    if (showEntryChoice) {
+      history.replaceState({ menuView: 'entryChoice' }, '', '');
+      renderEntryChoiceScreen(entryTypesEnabled, entryGiftAvailable, coverStyle);
+      return;
+    }
+
+    // No real choice to make — same default behavior as before this feature existed.
+    if (entryTypesEnabled.table) selectedOrderType = 'table';
+    else if (entryTypesEnabled.car) selectedOrderType = 'car';
+    else if (entryTypesEnabled.delivery) selectedOrderType = 'delivery';
+    orderTypePreset = true;
+    renderMenuGridAndHero(coverStyle);
+    return;
+
+  } catch (err) {
+    console.error(err);
+    app.innerHTML = `<div class="state-msg">${t('loadError')}<br><small style="color:#B3441E;">${err.code || ''} ${err.message || err}</small></div>`;
+  }
+}
+
+// Shows the "Dine-in / Car Pickup / Send a Gift" choice screen, matching
+// the reference design — this is the very first thing the customer sees
+// after scanning the QR code (when there's an actual choice to make).
+function renderEntryChoiceScreen(entryTypesEnabled, entryGiftAvailable, coverStyle) {
+  const app = document.getElementById('app');
+  const shopName = pendingMenuShopName;
+
+  let optionsHtml = '';
+  if (entryTypesEnabled.table) {
+    optionsHtml += `
+      <button type="button" class="entry-choice-btn" onclick="proceedToMenuAfterEntryChoice('table')">
+        <span class="entry-choice-icon">🍽️</span>
+        <span class="entry-choice-label">${t('orderFromTable')}</span>
+        <span class="entry-choice-arrow">‹</span>
+      </button>`;
+  }
+  if (entryTypesEnabled.car) {
+    optionsHtml += `
+      <button type="button" class="entry-choice-btn" onclick="proceedToMenuAfterEntryChoice('car')">
+        <span class="entry-choice-icon">🚗</span>
+        <span class="entry-choice-label">${t('orderFromCar')}</span>
+        <span class="entry-choice-arrow">‹</span>
+      </button>`;
+  }
+  if (entryTypesEnabled.delivery) {
+    optionsHtml += `
+      <button type="button" class="entry-choice-btn" onclick="proceedToMenuAfterEntryChoice('delivery')">
+        <span class="entry-choice-icon">🛵</span>
+        <span class="entry-choice-label">${t('orderFromDelivery')}</span>
+        <span class="entry-choice-arrow">‹</span>
+      </button>`;
+  }
+  if (entryGiftAvailable) {
+    optionsHtml += `
+      <button type="button" class="entry-choice-btn" onclick="proceedToMenuAfterEntryChoice('gift')">
+        <span class="entry-choice-icon">🎁</span>
+        <span class="entry-choice-label">${t('giftEntryBtn')}</span>
+        <span class="entry-choice-arrow">‹</span>
+      </button>`;
+  }
+
+  app.innerHTML = `
+    <div class="menu-hero" ${coverStyle}>
+      ${shopInfo.logo ? `<img src="${shopInfo.logo}" class="menu-hero-logo" alt="${shopName}">` : ''}
+      <div class="menu-hero-name display">${shopName}</div>
+      ${(currentLang === 'en' && shopInfo.taglineEn) ? `<div class="menu-hero-tagline">${shopInfo.taglineEn}</div>` : (shopInfo.tagline ? `<div class="menu-hero-tagline">${shopInfo.tagline}</div>` : '')}
+    </div>
+    <div class="wrap" style="padding-top:20px;">
+      ${optionsHtml}
+      ${renderSocialIconsHtml()}
+    </div>
+  `;
+}
+
+// Small row of contact icons (location / Instagram / WhatsApp) — only
+// shows the ones the shop owner actually filled in, hidden entirely if
+// none are set. Shared between the entry-choice screen and the regular
+// menu page (for shops that skip straight to the grid).
+function renderSocialIconsHtml() {
+  const hasLocation = !!shopInfo.locationLink;
+  const hasInstagram = !!shopInfo.instagramLink;
+  const hasWhatsapp = !!shopInfo.whatsapp;
+  if (!hasLocation && !hasInstagram && !hasWhatsapp) return '';
+
+  const icons = {
+    instagram: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" stroke="none"/></svg>`,
+    location: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.2a7 7 0 1 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/></svg>`,
+    whatsapp: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.78 14.13c-.24.68-1.19 1.24-1.95 1.4-.52.11-1.2.2-3.48-.75-2.93-1.21-4.81-4.19-4.96-4.38-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36h.56c.18 0 .42-.07.66.5.24.58.83 2.01.9 2.15.07.15.11.32.02.51-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.07.95 1.96 1.24 2.24 1.39.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.27.37-.22.62-.13.25.09 1.6.75 1.87.89.27.14.45.2.52.32.07.11.07.66-.17 1.34z"/></svg>`
+  };
+
+  let iconsHtml = '';
+  if (hasInstagram) {
+    iconsHtml += `<a href="${shopInfo.instagramLink}" target="_blank" class="social-icon-btn">${icons.instagram}</a>`;
+  }
+  if (hasLocation) {
+    iconsHtml += `<a href="${shopInfo.locationLink}" target="_blank" class="social-icon-btn">${icons.location}</a>`;
+  }
+  if (hasWhatsapp) {
+    const waDigits = shopInfo.whatsapp.replace(/\D/g, '');
+    iconsHtml += `<a href="https://wa.me/${waDigits}" target="_blank" class="social-icon-btn">${icons.whatsapp}</a>`;
+  }
+  return `<div class="social-icons-row">${iconsHtml}</div>`;
+}
+
+function proceedToMenuAfterEntryChoice(choice) {
+  if (choice === 'gift') {
+    giftEntryMode = true;
+    orderTypePreset = false;
+  } else {
+    selectedOrderType = choice;
+    orderTypePreset = true;
+    giftEntryMode = false;
+  }
+  const coverStyle = shopInfo.coverImage ? `style="background-image:url('${shopInfo.coverImage}')"` : '';
+  history.pushState({ menuView: 'menuGrid' }, '', '');
+  renderMenuGridAndHero(coverStyle);
+}
+
+// Makes the phone/browser back button return to the entry-choice screen
+// (Dine-in / Car Pickup / Send a Gift) instead of exiting the page
+// entirely, whenever that screen was shown in the first place.
+window.addEventListener('popstate', (event) => {
+  if (!pendingEntryTypesEnabled) return; // this shop never had an entry-choice screen to begin with
+  const onMenuGrid = event.state && event.state.menuView === 'menuGrid';
+  if (!onMenuGrid) {
+    renderEntryChoiceScreen(pendingEntryTypesEnabled, pendingEntryGiftAvailable, pendingCoverStyle);
+  }
+});
+
+// Builds the hero header + category pills + item grid — exactly the same
+// markup and logic that used to run directly inside loadMenu(), just moved
+// into its own function so it can run either immediately (shops with only
+// one possible order type) or after the entry-choice screen.
+function renderMenuGridAndHero(coverStyle) {
+  const app = document.getElementById('app');
+  const categories = pendingMenuCategories;
+  const shopName = pendingMenuShopName;
+
+  try {
+    let html = `
+      <div class="menu-hero" ${coverStyle}>
+        ${shopInfo.logo ? `<img src="${shopInfo.logo}" class="menu-hero-logo" alt="${shopName}">` : ''}
+        <div class="menu-hero-name display">${shopName}</div>
+        ${(currentLang === 'en' && shopInfo.taglineEn) ? `<div class="menu-hero-tagline">${shopInfo.taglineEn}</div>` : (shopInfo.tagline ? `<div class="menu-hero-tagline">${shopInfo.tagline}</div>` : '')}
+        ${shopInfo.location ? `<div class="menu-hero-location">${shopInfo.location}</div>` : ''}
+        ${(shopInfo.showRatingPublicly && shopInfo.avgRating) ? `<div class="menu-hero-rating">⭐ ${shopInfo.avgRating} (${shopInfo.ratingCount} ${t('ratingsWord')})</div>` : ''}
+        ${shopRooms.length > 0 ? `<button class="reserve-room-btn" onclick="openReserveModal()">🏛️ ${t('reserveRoomBtn')}</button>` : ''}
+        ${shopInfo.openingHours ? `
+          <div class="hours-toggle" onclick="toggleHours()">
+            <span>🕐</span><span>${t('openingHoursLbl')}</span><span id="hoursArrow">⌄</span>
+          </div>
+          <div class="hours-content" id="hoursContent" style="display:none;">${shopInfo.openingHours}</div>
+        ` : ''}
+      </div>
+
+      ${renderSocialIconsHtml()}
+
+      <div class="menu-search-wrap">
+        <input type="text" id="menuSearchInput" class="menu-search-input" placeholder="${t('searchPlaceholder')}" oninput="filterMenuSearch(this.value)">
+      </div>
+    `;
+
+    const categoryNames = Object.keys(categories);
+
+    if (categoryNames.length === 0) {
+      html += `<div class="state-msg">${t('noItems')}</div>`;
+    } else if (categoryNames.length > 1) {
+      html += '<div class="category-pills" id="categoryPills">';
+      categoryNames.forEach((cat, i) => {
+        html += `<button class="pill ${i === 0 ? 'active' : ''}" data-cat="cat-${i}" onclick="scrollToCategory('cat-${i}', this)">${cat}</button>`;
+      });
+      html += '</div>';
+    }
+
+    categoryNames.forEach((category, i) => {
+      const items = categories[category];
+      html += `<div class="category-title" id="cat-${i}">${category}</div>`;
+      html += '<div class="menu-grid">';
+      items.forEach(item => {
+        const unavailable = item.available === false || item.stock === 0;
+        const itemName = (currentLang === 'en' && item.nameEn) ? item.nameEn : item.name;
+        const itemDesc = item.description || '';
+        itemMeta[item.id] = { name: item.name, nameEn: item.nameEn || '', price: item.price, image: item.image || '', description: itemDesc, available: item.available !== false && item.stock !== 0 };
+        if (item.suggested === true && item.available !== false) suggestedItemIds.push(item.id);
+        html += `
+          <div class="grid-card ${unavailable ? 'unavailable' : ''}" data-search="${(itemName + ' ' + itemDesc).toLowerCase()}">
+            <div class="grid-card-img-wrap" onclick="openItemDetail('${item.id}')">
+              ${item.image ? `<img src="${item.image}" class="grid-card-img" alt="">` : ''}
+              ${item.bestSeller ? `<div class="best-seller-badge">⭐ ${t('bestSellerTag')}</div>` : ''}
+              ${unavailable ? `<div class="grid-unavailable-tag">${t('unavailableTag')}</div>` : `
+                <div class="grid-qty-container" id="qtyctrl-${item.id}">${renderQtyControl(item.id, 0)}</div>
+              `}
+            </div>
+            <div class="grid-card-body" onclick="openItemDetail('${item.id}')">
+              <div class="grid-card-name">${itemName}</div>
+              <div class="grid-card-price">${Number(item.price).toFixed(2)} ${t('currency')}</div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    });
+
+    app.innerHTML = html;
+
+    // Resume tracking a previously placed order, if one is still active for this shop
+    // (survives page refresh, since it's stored in the browser, not just in memory)
+    const savedOrderId = localStorage.getItem(`activeOrder_${shopId}`);
+    if (savedOrderId) {
+      trackOrder(savedOrderId);
+    }
+
+  } catch (err) {
+    console.error(err);
+    app.innerHTML = `<div class="state-msg">${t('loadError')}<br><small style="color:#B3441E;">${err.code || ''} ${err.message || err}</small></div>`;
+  }
+}
+
+function escapeStr(str) {
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function toggleHours() {
+  const content = document.getElementById('hoursContent');
+  const arrow = document.getElementById('hoursArrow');
+  const isOpen = content.style.display === 'block';
+  content.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '⌄' : '⌃';
+}
+
+function filterMenuSearch(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('.grid-card').forEach(card => {
+    const matches = !q || (card.dataset.search || '').includes(q);
+    card.style.display = matches ? '' : 'none';
+  });
+  // Hide category titles/pills sections that end up with zero visible items
+  document.querySelectorAll('.menu-grid').forEach(grid => {
+    const anyVisible = Array.from(grid.children).some(c => c.style.display !== 'none');
+    grid.style.display = anyVisible ? '' : 'none';
+    const title = grid.previousElementSibling;
+    if (title && title.classList.contains('category-title')) {
+      title.style.display = anyVisible ? '' : 'none';
+    }
+  });
+}
+
+function openItemDetail(itemId) {
+  const meta = itemMeta[itemId];
+  if (!meta) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'detailOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('detailOverlay').remove()">×</button>
+      ${meta.image ? `<img src="${meta.image}" style="width:100%; border-radius:12px; margin-bottom:16px; max-height:260px; object-fit:cover;">` : ''}
+      <h3 style="margin-bottom:8px;">${meta.name}</h3>
+      <div class="item-price" style="margin-bottom:12px;">${Number(meta.price).toFixed(2)} ${t('currency')}</div>
+      ${meta.description ? `<p style="color:var(--stone); line-height:1.6;">${meta.description}</p>` : ''}
+      ${meta.available
+        ? `<button class="btn" style="width:100%; margin-top:16px;" onclick='document.getElementById("detailOverlay").remove(); changeQty("${itemId}", 1);'>+ ${t('addToCartBtn')}</button>`
+        : `<div class="grid-unavailable-tag" style="position:static; margin-top:16px; padding:12px; border-radius:10px;">${t('unavailableTag')}</div>`
+      }
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function scrollToCategory(catId, pillEl) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  pillEl.classList.add('active');
+  const target = document.getElementById(catId);
+  const pillsBar = document.getElementById('categoryPills');
+  const offset = pillsBar ? pillsBar.offsetHeight + 12 : 12;
+  const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+  window.scrollTo({ top, behavior: 'smooth' });
+}
+
+// ---- Cart logic ----
+function renderQtyControl(itemId, qty) {
+  if (qty <= 0) {
+    return `<button class="grid-add-btn" onclick='event.stopPropagation(); changeQty("${itemId}", 1)'>+</button>`;
+  }
+  return `
+    <div class="grid-qty-stepper" onclick="event.stopPropagation()">
+      <button onclick='changeQty("${itemId}", -1)'>−</button>
+      <span class="grid-qty-num">${qty}</span>
+      <button onclick='changeQty("${itemId}", 1)'>+</button>
+    </div>
+  `;
+}
+
+function changeQty(itemId, delta) {
+  const meta = itemMeta[itemId];
+  if (!cart[itemId]) cart[itemId] = { name: meta.name, nameEn: meta.nameEn, price: meta.price, qty: 0 };
+  cart[itemId].qty += delta;
+  const newQty = cart[itemId].qty > 0 ? cart[itemId].qty : 0;
+  if (cart[itemId].qty <= 0) delete cart[itemId];
+
+  const container = document.getElementById(`qtyctrl-${itemId}`);
+  if (container) container.innerHTML = renderQtyControl(itemId, newQty);
+
+  updateCartBar();
+}
+
+function updateCartBar() {
+  const bar = document.getElementById('cartBar');
+  const items = Object.values(cart);
+  const totalQty = items.reduce((sum, i) => sum + i.qty, 0);
+  const totalPrice = items.reduce((sum, i) => sum + i.qty * i.price, 0);
+
+  if (totalQty === 0) {
+    bar.style.display = 'none';
+    adjustStatusBarPosition();
+    return;
+  }
+
+  bar.style.display = 'flex';
+  document.getElementById('cartCount').textContent = `${totalQty} ${t('itemsWord')}`;
+  document.getElementById('cartTotal').textContent = `${totalPrice.toFixed(2)} ${t('currency')}`;
+  adjustStatusBarPosition();
+}
+
+// The cart bar and the order-tracking status bar both sit at the same
+// fixed spot at the bottom of the screen. If a customer is already
+// tracking one order and starts building a second, both bars would show
+// at once and silently overlap — this lifts the status bar clear of the
+// cart bar whenever both are visible, so neither is ever hidden behind
+// the other.
+function adjustStatusBarPosition() {
+  const cartBarVisible = document.getElementById('cartBar').style.display === 'flex';
+  const statusBar = document.getElementById('orderStatusBar');
+  if (!statusBar) return;
+  statusBar.style.bottom = cartBarVisible ? 'calc(86px + env(safe-area-inset-bottom))' : '';
+}
+
+function addSuggestedToCart(itemId) {
+  changeQty(itemId, 1);
+  closeCartModal();
+  openCartModal();
+}
+
+// ===================== Room reservations =====================
+const reservationTimeSlots = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'];
+
+function openReserveModal() {
+  const today = new Date().toISOString().split('T')[0];
+
+  const roomOptions = shopRooms.map(r => {
+    const label = (currentLang === 'en' && r.nameEn) ? r.nameEn : r.name;
+    return `<option value="${r.id}">${label}${r.capacity ? ` (${r.capacity} ${t('guestsWord')})` : ''}</option>`;
+  }).join('');
+
+  const timeOptions = reservationTimeSlots.map(tm => `<option value="${tm}">${tm}</option>`).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'reserveOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('reserveOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 16px;">${t('reserveRoomBtn')}</h3>
+
+      <div class="field">
+        <label for="resRoom">${t('roomFieldLbl')}</label>
+        <select id="resRoom">${roomOptions}</select>
+      </div>
+      <div class="field">
+        <label for="resDate">${t('dateFieldLbl')}</label>
+        <input type="date" id="resDate" min="${today}" value="${today}">
+      </div>
+      <div class="field">
+        <label for="resTime">${t('timeFieldLbl')}</label>
+        <select id="resTime">${timeOptions}</select>
+      </div>
+      <div class="field">
+        <label for="resGuests">${t('guestsFieldLbl')}</label>
+        <input type="number" id="resGuests" min="1" value="2">
+      </div>
+      <div class="field">
+        <label for="resName">${t('yourName')}</label>
+        <input type="text" id="resName" placeholder="${t('namePlaceholder')}">
+      </div>
+      <div class="field">
+        <label for="resPhone">${t('phoneFieldLbl')}</label>
+        <input type="tel" id="resPhone" placeholder="9xxxxxxx">
+      </div>
+      <div class="field">
+        <label for="resNotes">${t('notesLabel')}</label>
+        <input type="text" id="resNotes">
+      </div>
+
+      <button class="btn" style="width:100%;" onclick="submitReservation()">${t('confirmReservationBtn')}</button>
+      <div id="reserveError" class="error-msg"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function submitReservation() {
+  const errorEl = document.getElementById('reserveError');
+  errorEl.textContent = '';
+
+  const roomId = document.getElementById('resRoom').value;
+  const date = document.getElementById('resDate').value;
+  const time = document.getElementById('resTime').value;
+  const guests = parseInt(document.getElementById('resGuests').value) || 1;
+  const name = document.getElementById('resName').value.trim();
+  const phone = document.getElementById('resPhone').value.trim();
+  const notes = document.getElementById('resNotes').value.trim();
+
+  if (!name || !phone) {
+    errorEl.textContent = t('reserveNameRequired');
+    return;
+  }
+
+  const room = shopRooms.find(r => r.id === roomId);
+  const roomName = room ? room.name : '';
+  const slotId = `${roomId}_${date}_${time}`;
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const slotRef = db.collection('shops').doc(shopId).collection('bookedSlots').doc(slotId);
+      const slotDoc = await tx.get(slotRef);
+      if (slotDoc.exists) {
+        throw new Error('SLOT_TAKEN');
+      }
+      tx.set(slotRef, { roomId, date, time, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+      const resRef = db.collection('shops').doc(shopId).collection('reservations').doc();
+      tx.set(resRef, {
+        roomId, roomName, date, time, guests, notes: notes || null,
+        customerName: name, phone,
+        status: 'confirmed',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    document.querySelector('#reserveOverlay .modal-sheet').innerHTML = `
+      <div style="text-align:center; padding:20px 10px;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">✅</div>
+        <h3>${t('reservationConfirmed')}</h3>
+        <p style="color:var(--stone);">${roomName} — ${date} ${time}</p>
+        <button class="btn" style="margin-top:16px;" onclick="document.getElementById('reserveOverlay').remove()">${t('close')}</button>
+      </div>
+    `;
+  } catch (err) {
+    if (err.message === 'SLOT_TAKEN') {
+      errorEl.textContent = t('slotTakenError');
+    } else {
+      console.error(err);
+      errorEl.textContent = t('orderSendError');
+    }
+  }
+}
+
+function openGiftEntryPoint() {
+  if (Object.keys(cart).length === 0) {
+    showGiftHintModal();
+    return;
+  }
+  openGiftModal();
+}
+
+function showGiftHintModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'giftHintOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">🎁</div>
+      <p style="margin-bottom:20px;">${t('giftPickItemsHint')}</p>
+      <button class="btn" style="width:100%;" onclick="document.getElementById('giftHintOverlay').remove()">${t('close')}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+let giftReceiptUrl = null;
+
+function openGiftModal() {
+  const items = Object.entries(cart);
+  if (items.length === 0) return;
+
+  const total = items.reduce((sum, [, i]) => sum + i.qty * i.price, 0);
+  const linesHtml = items.map(([, i]) => {
+    const iName = (currentLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+    return `<div class="order-item-row"><span class="order-item-qty">${i.qty}×</span><span class="order-item-name">${iName}</span><span class="order-item-price">${(i.price * i.qty).toFixed(2)}</span></div>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'giftOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="document.getElementById('giftOverlay').remove()">×</button>
+      <h3 style="margin:8px 0 6px;">🎁 ${t('giftModalTitle')}</h3>
+      <p style="color:var(--stone); font-size:0.85rem; margin-bottom:14px;">${t('giftModalSubtitle')}</p>
+
+      <div class="order-items-detail">
+        ${linesHtml}
+        <div class="order-item-total-row"><span>${t('total')}</span><span>${total.toFixed(2)} ${t('currency')}</span></div>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="giftRecipientName">${t('giftRecipientNameLbl')}</label>
+        <input type="text" id="giftRecipientName">
+      </div>
+      <div class="field">
+        <label for="giftRecipientPhone">${t('giftRecipientPhoneLbl')}</label>
+        <div style="display:flex; gap:8px;">
+          <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+          <input type="text" inputmode="numeric" id="giftRecipientPhone" placeholder="9xxxxxxx" style="flex:1;">
+        </div>
+      </div>
+      <div class="field">
+        <label for="giftPersonalMessage">${t('giftPersonalMessageLbl')}</label>
+        <textarea id="giftPersonalMessage" rows="3" placeholder="${t('giftPersonalMessagePlaceholder')}" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:var(--radius); font-family:inherit; resize:vertical;"></textarea>
+      </div>
+
+      <div style="background:var(--paper-dim); border-radius:12px; padding:14px; margin-top:10px;">
+        <div style="font-size:0.85rem; margin-bottom:8px;">${t('bankTransferInstructions')}</div>
+        <div style="font-weight:700; font-size:1.05rem; direction:ltr; text-align:left;">${(shopInfo.bankAccountName || '').toUpperCase()}</div>
+        <div style="font-weight:700; font-size:1.1rem; direction:ltr; text-align:left; margin-bottom:10px;">${(shopInfo.bankTransferNumber || '').replace('+968', '').trim()}</div>
+        <label for="giftReceiptFileInput" class="btn btn-ghost" style="display:block; text-align:center; cursor:pointer;">📎 ${t('attachReceiptBtn')}</label>
+        <input type="file" id="giftReceiptFileInput" accept="image/*" style="display:none;" onchange="handleGiftReceiptUpload(this)">
+        <div id="giftReceiptUploadStatus" style="font-size:0.8rem; margin-top:8px; text-align:center;"></div>
+      </div>
+
+      <button class="btn" id="submitGiftBtn" style="width:100%; margin-top:16px;" onclick="submitGiftOrder()">🎁 ${t('sendGiftBtn')}</button>
+      <div id="giftError" class="error-msg"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+async function handleGiftReceiptUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('giftReceiptUploadStatus');
+  statusEl.style.color = 'var(--stone)';
+  statusEl.textContent = t('uploadingReceipt');
+
+  try {
+    const path = `shops/${shopId}/receipts/${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+    await ref.put(file);
+    giftReceiptUrl = await ref.getDownloadURL();
+    statusEl.style.color = '#3D6B4F';
+    statusEl.textContent = t('receiptUploaded');
+  } catch (err) {
+    console.error('Gift receipt upload failed:', err);
+    giftReceiptUrl = null;
+    statusEl.style.color = '#B3441E';
+    statusEl.textContent = t('receiptUploadFailed');
+  }
+}
+
+async function submitGiftOrder() {
+  const submitBtn = document.getElementById('submitGiftBtn');
+  if (submitBtn.disabled) return;
+
+  const errorEl = document.getElementById('giftError');
+  const recipientName = document.getElementById('giftRecipientName').value.trim();
+  const recipientPhoneDigits = document.getElementById('giftRecipientPhone').value.trim();
+  const personalMessage = document.getElementById('giftPersonalMessage').value.trim();
+
+  if (!recipientName || !recipientPhoneDigits) {
+    errorEl.textContent = t('giftFieldsError');
+    return;
+  }
+  if (!giftReceiptUrl) {
+    errorEl.textContent = t('receiptRequiredError');
+    return;
+  }
+
+  const items = Object.values(cart).map(i => ({ name: i.name, nameEn: i.nameEn || null, price: i.price, qty: i.qty }));
+  const total = items.reduce((sum, i) => sum + i.qty * i.price, 0);
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = t('sendingOrderLoading');
+  errorEl.textContent = '';
+
+  try {
+    const shortId = await generateUniqueShortGiftId();
+    await db.collection('shops').doc(shopId).collection('giftCards').doc(shortId).set({
+      items,
+      total,
+      recipientName,
+      recipientPhone: `+968 ${recipientPhoneDigits}`,
+      personalMessage: personalMessage || null,
+      receiptUrl: giftReceiptUrl,
+      redeemed: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    cart = {};
+    updateCartBar();
+    giftReceiptUrl = null;
+
+    showGiftSentConfirmation(recipientName);
+  } catch (err) {
+    console.error('Gift order failed:', err);
+    errorEl.textContent = t('orderSendError');
+    submitBtn.disabled = false;
+    submitBtn.textContent = `🎁 ${t('sendGiftBtn')}`;
+  }
+}
+
+// Generates a short (7-character) random ID for a gift instead of
+// Firestore's normal long auto-ID, for a much shorter shareable link.
+// Checks for a collision before using it — the ID space (36^7, over 78
+// billion combinations) makes a collision astronomically unlikely, but
+// this guarantees it can never silently overwrite an existing gift.
+async function generateUniqueShortGiftId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let id = '';
+    for (let i = 0; i < 7; i++) {
+      id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const existing = await db.collection('shops').doc(shopId).collection('giftCards').doc(id).get();
+    if (!existing.exists) return id;
+  }
+  // Extremely unlikely fallback: if 5 random attempts somehow all
+  // collided, fall back to Firestore's own guaranteed-unique long ID
+  // rather than failing the purchase.
+  return db.collection('shops').doc(shopId).collection('giftCards').doc().id;
+}
+
+function showGiftSentConfirmation(recipientName) {
+  const overlay = document.getElementById('giftOverlay');
+  if (!overlay) return;
+
+  overlay.querySelector('.modal-sheet').innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:2.8rem; margin-bottom:10px;">🎉</div>
+      <h3 style="margin-bottom:12px;">${t('giftSentTitle')}</h3>
+      <p style="color:var(--stone); margin-bottom:20px;">${t('giftSentMsg')} ${recipientName}.</p>
+      <button class="btn" style="width:100%;" onclick="document.getElementById('giftOverlay').remove()">${t('close')}</button>
+    </div>
+  `;
+}
+
+// Builds each cart-review line with a quantity stepper and a remove (×)
+// button — used both when the modal first opens and whenever a line
+// changes, so the review screen never needs a full re-open.
+function buildCartLinesHtml(items) {
+  return items.map(([id, i]) => {
+    const dispName = (currentLang === 'en' && i.nameEn) ? i.nameEn : i.name;
+    return `
+      <div class="cart-line">
+        <button type="button" class="cart-line-remove" onclick='removeCartLine("${id}")'>×</button>
+        <span class="cart-line-name">${dispName}</span>
+        <div class="cart-line-qty">
+          <button type="button" onclick='cartLineChangeQty("${id}", -1)'>−</button>
+          <span>${i.qty}</span>
+          <button type="button" onclick='cartLineChangeQty("${id}", 1)'>+</button>
+        </div>
+        <span class="cart-line-price">${(i.qty * i.price).toFixed(2)} ${t('currency')}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Changing quantity or removing a line reuses changeQty() exactly as the
+// main grid's +/- buttons do — same cart object, same grid-control sync,
+// same cart-bar update — just followed by refreshing this modal's own display.
+function cartLineChangeQty(itemId, delta) {
+  changeQty(itemId, delta);
+  refreshCartReviewDisplay();
+}
+
+function removeCartLine(itemId) {
+  if (cart[itemId]) {
+    changeQty(itemId, -cart[itemId].qty);
+  }
+  refreshCartReviewDisplay();
+}
+
+function refreshCartReviewDisplay() {
+  const items = Object.entries(cart);
+  if (items.length === 0) {
+    closeCartModal();
+    return;
+  }
+  const linesContainer = document.getElementById('cartLinesContainer');
+  const totalLineEl = document.getElementById('cartTotalLine');
+  if (linesContainer) linesContainer.innerHTML = buildCartLinesHtml(items);
+  if (totalLineEl) {
+    const total = items.reduce((sum, [, i]) => sum + i.qty * i.price, 0);
+    totalLineEl.innerHTML = `<span>${t('total')}</span><span>${total.toFixed(2)} ${t('currency')}</span>`;
+  }
+}
+
+function openCartModal() {
+  const items = Object.entries(cart);
+  if (items.length === 0) return;
+
+  // Came in through "أهدِ صديق" on the entry screen — go straight to the
+  // gift flow instead of the normal order review.
+  if (giftEntryMode) {
+    openGiftModal();
+    return;
+  }
+
+  let orderTypeHtml = '';
+  if (orderTypePreset) {
+    // Already decided on the entry screen — don't ask again, just keep
+    // using the selectedOrderType that was set there.
+  } else {
+    const orderTypesEnabled = {
+      table: (shopInfo.orderTypes ? shopInfo.orderTypes.table !== false : true),
+      car: (shopInfo.orderTypes ? shopInfo.orderTypes.car !== false : true),
+      delivery: (shopInfo.orderTypes ? shopInfo.orderTypes.delivery === true : false)
+    };
+    // If all got disabled somehow, fall back to table so ordering still works
+    if (!orderTypesEnabled.table && !orderTypesEnabled.car && !orderTypesEnabled.delivery) orderTypesEnabled.table = true;
+
+    selectedOrderType = orderTypesEnabled.table ? 'table' : (orderTypesEnabled.car ? 'car' : 'delivery');
+
+    orderTypeHtml = '<div class="order-type-toggle">';
+    if (orderTypesEnabled.table) {
+      orderTypeHtml += `
+        <button class="order-type-btn ${selectedOrderType === 'table' ? 'active' : ''}" id="typeTableBtn" onclick="setOrderType('table')">
+          <span class="order-type-icon">🍽️</span><span>${t('orderFromTable')}</span>
+        </button>
+      `;
+    }
+    if (orderTypesEnabled.car) {
+      orderTypeHtml += `
+        <button class="order-type-btn ${selectedOrderType === 'car' ? 'active' : ''}" id="typeCarBtn" onclick="setOrderType('car')">
+          <span class="order-type-icon">🚗</span><span>${t('orderFromCar')}</span>
+        </button>
+      `;
+    }
+    if (orderTypesEnabled.delivery) {
+      orderTypeHtml += `
+        <button class="order-type-btn ${selectedOrderType === 'delivery' ? 'active' : ''}" id="typeDeliveryBtn" onclick="setOrderType('delivery')">
+          <span class="order-type-icon">🛵</span><span>${t('orderFromDelivery')}</span>
+        </button>
+      `;
+    }
+    orderTypeHtml += '</div>';
+  }
+
+  const paymentMethodsEnabled = shopInfo.paymentMethods || { cash: true, transfer: true, card: true };
+  const paymentOptionDefs = [
+    { key: 'cash', label: t('payCash') },
+    { key: 'transfer', label: t('payTransfer') },
+    { key: 'card', label: t('payCard') }
+  ];
+  let paymentOptionsHtml = paymentOptionDefs
+    .filter(p => paymentMethodsEnabled[p.key] !== false)
+    .map(p => `<option value="${p.key}">${p.label}</option>`)
+    .join('');
+  if (!paymentOptionsHtml) paymentOptionsHtml = `<option value="cash">${t('payCash')}</option>`;
+
+  const total = items.reduce((sum, [, i]) => sum + i.qty * i.price, 0);
+
+  let linesHtml = buildCartLinesHtml(items);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'cartOverlay';
+
+  const suggestions = suggestedItemIds.filter(id => !cart[id] && itemMeta[id]);
+  let suggestHtml = '';
+  if (suggestions.length > 0) {
+    suggestHtml = `
+      <div class="cart-suggest-box">
+        <div class="cart-suggest-label">${t('suggestAddTitle')}</div>
+        ${suggestions.map(id => `
+          <div class="cart-suggest-item">
+            ${itemMeta[id].image ? `<img src="${itemMeta[id].image}">` : ''}
+            <span class="grow">${itemMeta[id].name} — ${Number(itemMeta[id].price).toFixed(2)} ${t('currency')}</span>
+            <button class="btn" style="padding:6px 14px; font-size:0.85rem;" onclick='addSuggestedToCart("${id}")'>+ ${t('addBtn')}</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="closeCartModal()">×</button>
+      <h3 style="margin:8px 0 16px;">${t('reviewOrder')}</h3>
+      <div id="cartLinesContainer">${linesHtml}</div>
+      <div class="cart-total-line" id="cartTotalLine">
+        <span>${t('total')}</span>
+        <span>${total.toFixed(2)} ${t('currency')}</span>
+      </div>
+      ${shopInfo.paymentMethods && shopInfo.paymentMethods.transfer !== false ? `
+        <button type="button" onclick="closeCartModal(); openGiftModal();" style="background:none; border:none; color:#2F6B5C; font-weight:600; font-size:0.85rem; padding:6px 0; cursor:pointer; text-decoration:underline;">🎁 ${t('sendAsGiftLink')}</button>
+      ` : ''}
+      ${suggestHtml}
+
+      ${orderTypeHtml}
+
+      <div id="tableFields" style="display:${selectedOrderType === 'table' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="tableNum">${t('tableNumber')}</label>
+          <input type="text" id="tableNum" placeholder="${t('tablePlaceholder')}">
+        </div>
+      </div>
+
+      <div id="carFields" style="display:${selectedOrderType === 'car' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="carNumber">${t('carNumber')}</label>
+          <input type="text" id="carNumber" placeholder="${t('carNumberPlaceholder')}">
+        </div>
+        <div class="field">
+          <label for="carColor">${t('carColor')}</label>
+          <input type="text" id="carColor" placeholder="${t('carColorPlaceholder')}">
+        </div>
+      </div>
+
+      <div id="deliveryFields" style="display:${selectedOrderType === 'delivery' ? 'block' : 'none'};">
+        <div class="field">
+          <label for="deliveryPhoneInput">${t('deliveryPhoneLbl')}</label>
+          <div style="display:flex; gap:8px;">
+            <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+            <input type="text" inputmode="numeric" id="deliveryPhoneInput" placeholder="9xxxxxxx" style="flex:1;">
+          </div>
+        </div>
+        <div class="field">
+          <label for="deliveryMapsLink">${t('deliveryMapsLbl')}</label>
+          <input type="text" id="deliveryMapsLink" placeholder="${t('deliveryMapsPlaceholder')}" dir="ltr" style="text-align:left;">
+        </div>
+        <div class="field">
+          <label for="deliveryWilayat">${t('deliveryWilayatLbl')}</label>
+          <input type="text" id="deliveryWilayat">
+        </div>
+        <div class="field">
+          <label for="deliveryArea">${t('deliveryAreaLbl')}</label>
+          <input type="text" id="deliveryArea">
+        </div>
+        <div class="field">
+          <label for="deliveryHouseNumber">${t('deliveryHouseNumberLbl')}</label>
+          <input type="text" id="deliveryHouseNumber">
+        </div>
+      </div>
+
+      ${shopInfo.loyaltyEnabled ? `
+      <div class="field">
+        <label for="loyaltyPhoneInput">${t('loyaltyPhoneLbl')}</label>
+        <div style="display:flex; gap:8px;">
+          <span style="padding:10px 14px; background:var(--paper-dim); border:1px solid var(--line); border-radius:var(--radius); font-weight:600; flex-shrink:0;">+968</span>
+          <input type="text" inputmode="numeric" id="loyaltyPhoneInput" placeholder="9xxxxxxx" style="flex:1;" value="${(localStorage.getItem('loyaltyPhone_' + shopId) || '')}" onblur="checkLoyaltyPoints()">
+        </div>
+        <div id="loyaltyPointsDisplay" style="font-size:0.85rem; margin-top:8px;"></div>
+      </div>
+      ` : ''}
+
+      <div class="field" style="margin-top:16px;">
+        <label for="orderNotes">${t('notesLabel')}</label>
+        <input type="text" id="orderNotes" placeholder="${t('notesPlaceholder')}">
+      </div>
+
+      <div class="field">
+        <label for="paymentMethod">${t('paymentMethodLbl')}</label>
+        <select id="paymentMethod" onchange="onPaymentMethodChange()">${paymentOptionsHtml}</select>
+      </div>
+
+      <div id="bankTransferPanel" style="display:none; background:var(--paper-dim); border-radius:12px; padding:14px; margin-top:10px;">
+        <div style="font-size:0.85rem; margin-bottom:8px;">${t('bankTransferInstructions')}</div>
+        <div style="font-weight:700; font-size:1.05rem; direction:ltr; text-align:left;">${(shopInfo.bankAccountName || '').toUpperCase()}</div>
+        <div style="font-weight:700; font-size:1.1rem; direction:ltr; text-align:left; margin-bottom:10px;">${(shopInfo.bankTransferNumber || '').replace('+968', '').trim()}</div>
+        <label for="receiptFileInput" class="btn btn-ghost" style="display:block; text-align:center; cursor:pointer;">📎 ${t('attachReceiptBtn')}</label>
+        <input type="file" id="receiptFileInput" accept="image/*" style="display:none;" onchange="handleReceiptUpload(this)">
+        <div id="receiptUploadStatus" style="font-size:0.8rem; margin-top:8px; text-align:center;"></div>
+      </div>
+
+      <button class="btn" id="submitOrderBtn" style="width:100%; margin-top:16px;" onclick="submitOrder()">${t('sendOrder')}</button>
+      <div id="orderError" class="error-msg"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  onPaymentMethodChange();
+  if (shopInfo.loyaltyEnabled) checkLoyaltyPoints();
+}
+
+let selectedOrderType = 'table';
+let uploadedReceiptUrl = null;
+let currentLoyaltyRewardReady = false;
+
+function showRewardReadyPopup() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'rewardReadyOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">🎉</div>
+      <h3 style="margin-bottom:12px;">${t('rewardReadyPopupTitle')}</h3>
+      <p style="color:var(--stone); margin-bottom:20px;">${shopInfo.loyaltyRewardText || t('rewardReadyMsg')}</p>
+      <button class="btn" style="width:100%;" onclick="document.getElementById('rewardReadyOverlay').remove()">${t('okBtn')}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+let rewardPopupShownForPhone = null;
+
+async function checkLoyaltyPoints() {
+  const phoneInput = document.getElementById('loyaltyPhoneInput');
+  const displayEl = document.getElementById('loyaltyPointsDisplay');
+  if (!phoneInput || !displayEl) return;
+
+  const phone = phoneInput.value.trim();
+  currentLoyaltyRewardReady = false;
+  if (!phone || phone.length < 7) {
+    displayEl.textContent = '';
+    return;
+  }
+
+  localStorage.setItem('loyaltyPhone_' + shopId, phone);
+  const threshold = shopInfo.loyaltyThreshold || 6;
+
+  try {
+    const doc = await db.collection('shops').doc(shopId).collection('loyaltyCustomers').doc(phone).get();
+    const points = doc.exists ? (doc.data().points || 0) : 0;
+
+    if (points >= threshold) {
+      currentLoyaltyRewardReady = true;
+      displayEl.innerHTML = `🎉 <strong>${t('rewardReadyMsg')}</strong> ${shopInfo.loyaltyRewardText || ''}`;
+      displayEl.style.color = '#3D7A47';
+      if (rewardPopupShownForPhone !== phone) {
+        rewardPopupShownForPhone = phone;
+        showRewardReadyPopup();
+      }
+    } else {
+      const remaining = threshold - points;
+      displayEl.textContent = `🎁 ${t('pointsProgressMsg').replace('{count}', remaining)}`;
+      displayEl.style.color = 'var(--stone)';
+    }
+  } catch (err) {
+    console.error('Loyalty points check failed:', err);
+    displayEl.textContent = '';
+  }
+}
+
+function onPaymentMethodChange() {
+  const method = document.getElementById('paymentMethod').value;
+  const panel = document.getElementById('bankTransferPanel');
+  if (panel) panel.style.display = method === 'transfer' ? 'block' : 'none';
+}
+
+async function handleReceiptUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('receiptUploadStatus');
+  statusEl.style.color = 'var(--stone)';
+  statusEl.textContent = t('uploadingReceipt');
+
+  try {
+    const path = `shops/${shopId}/receipts/${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+    await ref.put(file);
+    uploadedReceiptUrl = await ref.getDownloadURL();
+    statusEl.style.color = '#3D6B4F';
+    statusEl.textContent = t('receiptUploaded');
+  } catch (err) {
+    console.error('Receipt upload failed:', err);
+    uploadedReceiptUrl = null;
+    statusEl.style.color = '#B3441E';
+    statusEl.textContent = t('receiptUploadFailed');
+  }
+}
+
+function setOrderType(type) {
+  selectedOrderType = type;
+  const tableBtn = document.getElementById('typeTableBtn');
+  const carBtn = document.getElementById('typeCarBtn');
+  const deliveryBtn = document.getElementById('typeDeliveryBtn');
+  if (tableBtn) tableBtn.classList.toggle('active', type === 'table');
+  if (carBtn) carBtn.classList.toggle('active', type === 'car');
+  if (deliveryBtn) deliveryBtn.classList.toggle('active', type === 'delivery');
+  document.getElementById('tableFields').style.display = type === 'table' ? 'block' : 'none';
+  document.getElementById('carFields').style.display = type === 'car' ? 'block' : 'none';
+  document.getElementById('deliveryFields').style.display = type === 'delivery' ? 'block' : 'none';
+}
+
+function closeCartModal() {
+  const overlay = document.getElementById('cartOverlay');
+  if (overlay) overlay.remove();
+}
+
+async function submitOrder() {
+  const submitBtn = document.getElementById('submitOrderBtn');
+  if (submitBtn.disabled) return; // already submitting — ignore extra taps
+
+  const errorEl = document.getElementById('orderError');
+  const notes = document.getElementById('orderNotes').value.trim();
+  const paymentMethod = document.getElementById('paymentMethod').value;
+
+  let table = null, carNumber = null, carColor = null;
+  let deliveryPhone = null, deliveryMapsLink = null, deliveryWilayat = null, deliveryArea = null, deliveryHouseNumber = null;
+
+  if (selectedOrderType === 'car') {
+    carNumber = document.getElementById('carNumber').value.trim();
+    carColor = document.getElementById('carColor').value.trim();
+    if (!carNumber || !carColor) {
+      errorEl.textContent = t('carFieldsError');
+      return;
+    }
+  } else if (selectedOrderType === 'delivery') {
+    deliveryPhone = document.getElementById('deliveryPhoneInput').value.trim();
+    deliveryMapsLink = document.getElementById('deliveryMapsLink').value.trim();
+    deliveryWilayat = document.getElementById('deliveryWilayat').value.trim();
+    deliveryArea = document.getElementById('deliveryArea').value.trim();
+    deliveryHouseNumber = document.getElementById('deliveryHouseNumber').value.trim();
+    if (!deliveryPhone || !deliveryMapsLink || !deliveryWilayat || !deliveryArea) {
+      errorEl.textContent = t('deliveryFieldsError');
+      return;
+    }
+  } else {
+    table = document.getElementById('tableNum').value.trim();
+  }
+
+  if (paymentMethod === 'transfer' && !uploadedReceiptUrl) {
+    errorEl.textContent = t('receiptRequiredError');
+    return;
+  }
+
+  const loyaltyPhoneInput = document.getElementById('loyaltyPhoneInput');
+  const loyaltyPhone = (loyaltyPhoneInput && loyaltyPhoneInput.value.trim()) ? loyaltyPhoneInput.value.trim() : null;
+
+  const cartEntries = Object.entries(cart); // [itemId, {name, nameEn, price, qty}]
+  const items = cartEntries.map(([, i]) => ({ name: i.name, nameEn: i.nameEn || null, price: i.price, qty: i.qty }));
+  const total = items.reduce((sum, i) => sum + i.qty * i.price, 0);
+  const orderRef = db.collection('shops').doc(shopId).collection('orders').doc();
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = t('sendingOrderLoading');
+  errorEl.textContent = '';
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const menuRefs = cartEntries.map(([id]) => db.collection('shops').doc(shopId).collection('menu').doc(id));
+      const menuDocs = await Promise.all(menuRefs.map(ref => tx.get(ref)));
+
+      // Verify stock BEFORE writing anything — if any tracked item doesn't
+      // have enough left, the whole order is rejected (nothing is decremented).
+      for (let i = 0; i < cartEntries.length; i++) {
+        const [, cartItem] = cartEntries[i];
+        const menuData = menuDocs[i].exists ? menuDocs[i].data() : {};
+        if (typeof menuData.stock === 'number' && menuData.stock < cartItem.qty) {
+          const err = new Error('OUT_OF_STOCK');
+          err.itemName = (currentLang === 'en' && menuData.nameEn) ? menuData.nameEn : cartItem.name;
+          throw err;
+        }
+      }
+
+      for (let i = 0; i < cartEntries.length; i++) {
+        const [, cartItem] = cartEntries[i];
+        const menuData = menuDocs[i].exists ? menuDocs[i].data() : {};
+        if (typeof menuData.stock === 'number') {
+          tx.update(menuRefs[i], { stock: menuData.stock - cartItem.qty });
+        }
+      }
+
+      tx.set(orderRef, {
+        orderType: selectedOrderType,
+        tableNumber: table || null,
+        carNumber: carNumber || null,
+        carColor: carColor || null,
+        deliveryPhone: deliveryPhone ? `+968 ${deliveryPhone}` : null,
+        deliveryMapsLink: deliveryMapsLink || null,
+        deliveryWilayat: deliveryWilayat || null,
+        deliveryArea: deliveryArea || null,
+        deliveryHouseNumber: deliveryHouseNumber || null,
+        notes: notes || null,
+        paymentMethod,
+        receiptUrl: paymentMethod === 'transfer' ? uploadedReceiptUrl : null,
+        loyaltyPhone,
+        loyaltyRewardReady: loyaltyPhone ? currentLoyaltyRewardReady : false,
+        items,
+        total,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    const docRef = orderRef;
+
+    // Reset cart
+    cart = {};
+    updateCartBar();
+    uploadedReceiptUrl = null;
+
+    // Best-effort activity tracking for the admin panel — never allowed to
+    // interfere with the order itself if it fails for any reason.
+    db.collection('shops').doc(shopId).update({
+      'info.lastOrderAt': firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('lastOrderAt update failed (non-blocking):', err));
+
+    // Refresh the grid so any item that just hit zero stock shows as
+    // unavailable immediately, without needing a full page reload.
+    loadMenu();
+
+    document.querySelectorAll('.grid-qty-container').forEach(el => {
+      const itemId = el.id.replace('qtyctrl-', '');
+      el.innerHTML = renderQtyControl(itemId, 0);
+    });
+
+    // Start live tracking of this order and show the step tracker
+    trackOrder(docRef.id);
+
+    const paymentInstructions = {
+      cash: t('payCashInstruction'),
+      card: t('payCardInstruction'),
+      transfer: t('payTransferInstruction')
+    };
+
+    document.querySelector('.modal-sheet').innerHTML = `
+      <h3 style="margin:8px 0 12px; text-align:center;">${t('orderSent')}</h3>
+      <p style="text-align:center; color:var(--ink); font-weight:600; margin-bottom:20px;">${paymentInstructions[paymentMethod] || ''}</p>
+      <div id="trackerContainer">${renderTracker('pending')}</div>
+      <button class="btn" style="width:100%; margin-top:24px;" onclick="closeCartModal()">${t('close')}</button>
+    `;
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'OUT_OF_STOCK') {
+      errorEl.textContent = `${t('outOfStockError')}: ${err.itemName || ''}`;
+      loadMenu();
+    } else {
+      errorEl.textContent = t('orderSendError');
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = t('sendOrder');
+  }
+}
+
+// ---- Live order status tracking ----
+const statusSteps = ['pending', 'preparing', 'ready'];
+
+function getStatusStepLabel(status) {
+  if (status === 'pending') return t('stepReceived');
+  if (status === 'preparing') return t('stepPreparing');
+  return t('stepReady');
+}
+
+function getStatusBarText(status) {
+  if (status === 'pending') return t('barReceived');
+  if (status === 'preparing') return t('barPreparing');
+  return t('barReady');
+}
+
+let activeOrderId = null;
+let activeOrderUnsub = null;
+
+function trackOrder(orderId) {
+  activeOrderId = orderId;
+  if (activeOrderUnsub) activeOrderUnsub();
+
+  localStorage.setItem(`activeOrder_${shopId}`, orderId);
+
+  activeOrderUnsub = db.collection('shops').doc(shopId).collection('orders').doc(orderId)
+    .onSnapshot(doc => {
+      if (!doc.exists) {
+        // Order was deleted — stop tracking and clean up
+        clearOrderTracking();
+        return;
+      }
+      const status = doc.data().status || 'pending';
+
+      if (status === 'cancelled') {
+        const bar = document.getElementById('orderStatusBar');
+        bar.style.display = 'none';
+        const trackerEl = document.getElementById('trackerContainer');
+        if (trackerEl && !ratingInProgress) {
+          trackerEl.innerHTML = `
+            <div style="text-align:center; padding:10px 0;">
+              <div style="font-size:2.2rem; margin-bottom:10px;">❌</div>
+              <div style="font-weight:600; margin-bottom:18px;">${t('orderCancelledByShopMsg')}</div>
+              <button class="btn" style="width:100%;" onclick="clearOrderTracking()">${t('close')}</button>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      const bar = document.getElementById('orderStatusBar');
+      bar.style.display = 'block';
+      document.getElementById('statusBarText').textContent = getStatusBarText(status);
+      bar.classList.toggle('status-bar-ready', status === 'ready');
+      adjustStatusBarPosition();
+
+      const trackerEl = document.getElementById('trackerContainer');
+      if (trackerEl && !ratingInProgress) trackerEl.innerHTML = renderTracker(status);
+    }, err => {
+      console.error('Order tracking error:', err);
+    });
+}
+
+// Called when the customer confirms they've received their order,
+// or when the order no longer exists in Firestore.
+function clearOrderTracking() {
+  ratingInProgress = false;
+  if (activeOrderUnsub) activeOrderUnsub();
+  activeOrderUnsub = null;
+  activeOrderId = null;
+  localStorage.removeItem(`activeOrder_${shopId}`);
+  document.getElementById('orderStatusBar').style.display = 'none';
+  closeStatusModal();
+  closeCartModal();
+}
+
+// Shown when the customer taps "طلب جاهز" — quick 1-5 star rating before
+// the order tracker closes. Rating is optional; skipping still clears tracking.
+let selectedRatingStars = 0;
+let ratingInProgress = false;
+
+function showRatingPrompt() {
+  const container = document.getElementById('trackerContainer');
+  if (!container) { clearOrderTracking(); return; }
+
+  ratingInProgress = true;
+  selectedRatingStars = 0;
+  let starsHtml = '';
+  for (let i = 1; i <= 5; i++) {
+    starsHtml += `<span class="rating-star" data-star="${i}" onclick="selectRatingStar(${i})">☆</span>`;
+  }
+
+  container.innerHTML = `
+    <div style="text-align:center; padding:10px 0;">
+      <div style="margin-bottom:12px; font-weight:500;">${t('rateOrderPrompt')}</div>
+      <div class="rating-stars">${starsHtml}</div>
+      <button class="btn" id="submitRatingBtn" style="margin-top:18px; width:100%; opacity:0.5;" disabled onclick="submitRating()">${t('sendRatingBtn')}</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="clearOrderTracking()">${t('skipRating')}</button>
+    </div>
+  `;
+}
+
+function selectRatingStar(stars) {
+  selectedRatingStars = stars;
+  document.querySelectorAll('.rating-star').forEach((el, i) => {
+    el.textContent = i < stars ? '★' : '☆';
+  });
+  const btn = document.getElementById('submitRatingBtn');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
+
+async function submitRating() {
+  if (!selectedRatingStars) return;
+  const btn = document.getElementById('submitRatingBtn');
+  if (btn) { btn.disabled = true; btn.textContent = t('sendingMsg'); }
+
+  try {
+    await db.collection('shops').doc(shopId).collection('orders').doc(activeOrderId).update({ rating: selectedRatingStars });
+  } catch (err) {
+    console.error('Rating submit failed:', err);
+  }
+  clearOrderTracking();
+}
+
+function renderTracker(status) {
+  const stepIndex = statusSteps.indexOf(status);
+
+  let barHtml = '<div class="timeline-bar">';
+  statusSteps.forEach((s, i) => {
+    const state = i < stepIndex ? 'done' : (i === stepIndex ? 'active' : '');
+    barHtml += `<div class="timeline-segment ${state}"></div>`;
+  });
+  barHtml += '</div>';
+
+  let labelsHtml = '<div class="timeline-labels">';
+  statusSteps.forEach((s, i) => {
+    const state = i < stepIndex ? 'done' : (i === stepIndex ? 'active' : '');
+    labelsHtml += `<span class="${state}">${getStatusStepLabel(s)}</span>`;
+  });
+  labelsHtml += '</div>';
+
+  let etaHtml = '';
+  if (status !== 'ready' && shopInfo.estimatedMinutes) {
+    etaHtml = `<div style="text-align:center; color:var(--stone); font-size:0.85rem; margin-top:14px;">⏱ ${t('etaText')}: ~${shopInfo.estimatedMinutes} ${t('minuteWord')}</div>`;
+  }
+
+  let doneBtnHtml = '';
+  if (status === 'ready') {
+    doneBtnHtml = `<button class="btn" style="width:100%; margin-top:20px;" onclick="showRatingPrompt()">${t('orderPickedUp')}</button>`;
+  } else if (status === 'pending') {
+    doneBtnHtml = `<button class="btn btn-ghost" style="width:100%; margin-top:20px; color:#B3441E;" onclick="cancelOrder()">${t('cancelOrderBtn')}</button>`;
+  }
+
+  return `<div class="order-track">${barHtml}${labelsHtml}${etaHtml}${doneBtnHtml}</div>`;
+}
+
+async function cancelOrder() {
+  if (!activeOrderId) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'cancelConfirmOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">❌</div>
+      <h3 style="margin-bottom:20px;">${t('confirmCancelOrder')}</h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:#B3441E;" id="confirmCancelYesBtn">${t('yesCancelBtn')}</button>
+        <button class="btn btn-ghost" style="flex:1;" id="confirmCancelNoBtn">${t('noKeepBtn')}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('confirmCancelNoBtn').addEventListener('click', () => overlay.remove());
+  document.getElementById('confirmCancelYesBtn').addEventListener('click', async () => {
+    overlay.remove();
+    try {
+      await db.collection('shops').doc(shopId).collection('orders').doc(activeOrderId).update({ status: 'cancelled' });
+      clearOrderTracking();
+    } catch (err) {
+      console.error('Cancel order failed:', err);
+      alert(t('cancelOrderFailed'));
+    }
+  });
+}
+
+function openStatusModal() {
+  if (!activeOrderId) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'statusOverlay';
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <button class="close-x" onclick="closeStatusModal()">×</button>
+      <h3 style="margin:8px 0 20px; text-align:center;">${t('yourOrderStatus')}</h3>
+      <div id="trackerContainer">${renderTracker(statusSteps[0])}</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Immediately refresh with the real current status
+  db.collection('shops').doc(shopId).collection('orders').doc(activeOrderId).get().then(doc => {
+    if (doc.exists) {
+      document.getElementById('trackerContainer').innerHTML = renderTracker(doc.data().status || 'pending');
+    }
+  });
+}
+
+function closeStatusModal() {
+  const overlay = document.getElementById('statusOverlay');
+  if (overlay) overlay.remove();
+}
+
+applyLangDirection();
+loadMenu();
+</script>
+
+</body>
+</html>

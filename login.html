@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cafeoman">
+<meta name="theme-color" content="#6B4226">
+<script src="pwa-install.js" defer></script>
+
+<title>تسجيل الدخول</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<button class="lang-toggle" id="langToggle" onclick="toggleLoginLang()">EN</button>
+
+<div id="loadingMsg" class="state-msg">جاري التحقق من تسجيل الدخول...</div>
+
+<div class="wrap" id="loginForm" style="max-width:400px; padding-top:60px; display:none;">
+  <div class="shop-name display" style="text-align:center; margin-bottom:30px;" data-i18n="pageHeading">تسجيل دخول أصحاب الكوفيات</div>
+
+  <div class="card">
+    <div class="field">
+      <label for="email" data-i18n="emailLbl">البريد الإلكتروني</label>
+      <input type="email" id="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label for="password" data-i18n="passwordLbl">كلمة المرور</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+    <button class="btn" style="width:100%;" onclick="login()" data-i18n="loginBtn">دخول</button>
+    <div id="error" class="error-msg"></div>
+    <div id="successMsg" style="color:#3D6B4F; font-size:0.85rem; margin-top:8px;"></div>
+
+    <div style="text-align:center; margin-top:16px; font-size:0.85rem;">
+      <a href="#" onclick="forgotPassword(); return false;" style="color:var(--accent);" data-i18n="forgotPasswordLink">نسيت كلمة المرور؟</a>
+    </div>
+    <div style="text-align:center; margin-top:10px; font-size:0.85rem; color:var(--stone);">
+      <span data-i18n="noAccountText">ما عندك حساب؟</span> <a href="signup.html" style="color:var(--accent);" data-i18n="signupLink">سجل حساب جديد</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+});
+
+let loginLang = localStorage.getItem('dashLang') || 'ar';
+
+const loginT = {
+  pageHeading: { ar: 'تسجيل دخول أصحاب الكوفيات', en: 'Coffee Shop Owner Login' },
+  emailLbl: { ar: 'البريد الإلكتروني', en: 'Email' },
+  passwordLbl: { ar: 'كلمة المرور', en: 'Password' },
+  loginBtn: { ar: 'دخول', en: 'Log in' },
+  forgotPasswordLink: { ar: 'نسيت كلمة المرور؟', en: 'Forgot password?' },
+  noAccountText: { ar: 'ما عندك حساب؟', en: "Don't have an account?" },
+  signupLink: { ar: 'سجل حساب جديد', en: 'Sign up' },
+  staffQuestionText: { ar: 'أنت موظف؟', en: 'Are you a staff member?' },
+  staffLoginLink: { ar: 'سجل دخولك من هنا', en: 'Log in here' },
+  fillFieldsError: { ar: 'الرجاء إدخال البريد الإلكتروني وكلمة المرور.', en: 'Please enter your email and password.' },
+  loginError: { ar: 'بيانات الدخول غير صحيحة. حاول مرة أخرى.', en: 'Incorrect login details. Please try again.' },
+  emailFirstError: { ar: 'اكتب بريدك الإلكتروني بالخانة فوق أولاً، وبعدين اضغط "نسيت كلمة المرور".', en: 'Enter your email above first, then click "Forgot password".' },
+  resetSent: { ar: 'تم إرسال رابط إعادة تعيين كلمة المرور لبريدك الإلكتروني ✓', en: 'Password reset link sent to your email ✓' },
+  resetFailed: { ar: 'تعذر إرسال رابط إعادة التعيين. تأكد من صحة البريد الإلكتروني.', en: 'Could not send reset link. Please check your email address.' }
+};
+
+function lt(key) {
+  return (loginT[key] && loginT[key][loginLang]) || key;
+}
+
+function applyLoginLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = lt(el.getAttribute('data-i18n'));
+  });
+  document.getElementById('langToggle').textContent = loginLang === 'ar' ? 'EN' : 'عربي';
+  document.documentElement.dir = loginLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = loginLang;
+}
+
+function toggleLoginLang() {
+  loginLang = loginLang === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('dashLang', loginLang);
+  applyLoginLang();
+}
+
+applyLoginLang();
+
+// Opens the connection to Firestore early (while the person is still
+// typing their email/password), so the first real read right after login
+// doesn't have to pay the full connection-setup cost on a slow network.
+db.collection('categoryIcons').limit(1).get().catch(() => {});
+
+// If already logged in, go straight to dashboard — otherwise, NOW reveal
+// the login form (kept hidden until this point so a quick bounce-through
+// after "back" navigation never flashes the form before redirecting).
+auth.onAuthStateChanged(user => {
+  if (user) {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('loadingMsg').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
+});
+
+function login() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+
+  if (!email || !password) {
+    errorEl.textContent = lt('fillFieldsError');
+    return;
+  }
+
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => { window.location.href = 'dashboard.html'; })
+    .catch(err => {
+      errorEl.textContent = lt('loginError');
+      console.error(err);
+    });
+}
+
+// Allow Enter key to submit
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+function forgotPassword() {
+  const email = document.getElementById('email').value.trim();
+  const errorEl = document.getElementById('error');
+  const successEl = document.getElementById('successMsg');
+  errorEl.textContent = '';
+  successEl.textContent = '';
+
+  if (!email) {
+    errorEl.textContent = lt('emailFirstError');
+    return;
+  }
+
+  auth.sendPasswordResetEmail(email)
+    .then(() => {
+      successEl.textContent = lt('resetSent');
+    })
+    .catch(err => {
+      console.error(err);
+      errorEl.textContent = lt('resetFailed');
+    });
+}
+</script>
+
+</body>
+</html>

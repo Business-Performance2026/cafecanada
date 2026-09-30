@@ -1,0 +1,13 @@
+{
+  "name": "Cafeoman.app",
+  "short_name": "Cafeoman",
+  "description": "قوائم رقمية وطلب فوري للكوفيات عبر QR",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FAF6EF",
+  "theme_color": "#6B4226",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
