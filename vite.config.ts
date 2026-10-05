@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
 
-  // ⚠️ مهم: غيّر "cafe-qr" إلى اسم مستودعك على GitHub بالضبط
+  // ⚠️ مهم: غيّر "cafecanada" إلى اسم مستودعك على GitHub بالضبط
   // مثال: لو رابط مستودعك github.com/ahmed/my-coffee  ← حط "/my-coffee/"
   base: "/cafecanada/",
 
