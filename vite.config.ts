@@ -8,7 +8,7 @@ export default defineConfig({
 
   // ⚠️ مهم: غيّر "cafe-qr" إلى اسم مستودعك على GitHub بالضبط
   // مثال: لو رابط مستودعك github.com/ahmed/my-coffee  ← حط "/my-coffee/"
-  base: "/cafe-qr/",
+  base: "/cafecanada/",
 
   server: { port: 3000 },
   resolve: {
