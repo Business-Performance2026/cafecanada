@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    function ownsCafe(cafeId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/cafes/$(cafeId)).data.ownerId == request.auth.uid;
+    }
+
+    // User profiles: read own, create own, only admin can change roles
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      allow update, delete: if isAdmin();
+    }
+
+    // Cafés: public can read active cafés; owner manages their own; admin manages all
+    match /cafes/{cafeId} {
+      allow read: if resource.data.isActive == true
+        || (isSignedIn() && resource.data.ownerId == request.auth.uid)
+        || isAdmin();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if ownsCafe(cafeId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Categories & menu items: public read, owner write
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if ownsCafe(request.resource.data.cafeId)
+        || (isSignedIn() && ownsCafe(resource.data.cafeId));
+    }
+    match /menuItems/{id} {
+      allow read: if true;
+      allow write: if ownsCafe(request.resource.data.cafeId)
+        || (isSignedIn() && ownsCafe(resource.data.cafeId));
+    }
+
+    // Orders: anyone can create; owner reads/updates their café's orders;
+    // customer reads a single order by ID (tracking)
+    match /orders/{orderId} {
+      allow create: if true;
+      allow get: if true;
+      allow list: if isSignedIn() && (ownsCafe(resource == null ? "" : resource.data.cafeId)) || isAdmin();
+      allow update: if isSignedIn() && ownsCafe(resource.data.cafeId);
+      allow delete: if isAdmin();
+
+      match /items/{itemId} {
+        allow read: if true;
+        allow create: if true;
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}
